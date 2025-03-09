@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 245, 245, 245;
+  --background-end-rgb: 255, 255, 255;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* 为链接添加平滑过渡效果 */
+a {
+  transition: all 0.3s ease;
+}
+
+/* 添加一些通用动画效果 */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 移动设备优化 - 适配iPhone 15 Pro尺寸 */
+@media (max-width: 430px) {
+  /* 调整容器内边距 */
+  .container, main {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  
+  /* 优化标题大小 */
+  h1, .MuiTypography-h4 {
+    font-size: 1.5rem !important;
+    line-height: 1.3 !important;
+  }
+  
+  h2, .MuiTypography-h5 {
+    font-size: 1.25rem !important;
+  }
+  
+  h3, .MuiTypography-h6 {
+    font-size: 1.1rem !important;
+  }
+  
+  /* 增加按钮的可点击区域 */
+  button, .MuiButtonBase-root {
+    min-height: 40px !important;
+    padding: 8px 16px !important;
+  }
+  
+  /* 表单元素的移动优化 */
+  input, textarea, select, .MuiInputBase-root {
+    font-size: 16px !important; /* 防止iOS自动缩放 */
+  }
+  
+  /* 导航菜单优化 */
+  nav .MuiToolbar-root {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  
+  /* 卡片内容适配 */
+  .MuiCard-root {
+    margin-bottom: 16px !important;
+  }
+  
+  .MuiCardContent-root {
+    padding: 16px !important;
+  }
+  
+  /* 间距调整 - 删除可能影响Grid布局的样式 */
+  .MuiGrid-container {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+  
+  /* 确保Grid项正确显示 */
+  .MuiGrid-item {
+    padding: 8px !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* 改善触摸区域 */
+  a, button, [role="button"] {
+    touch-action: manipulation;
+  }
+}
+
+/* iPhone 15 Pro特定优化 - 安全区域适配 */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+} 

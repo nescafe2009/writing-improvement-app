@@ -1,4 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 小学生作文提升Web应用
+
+这是一款面向小学生的作文提升Web应用，旨在帮助小学生提高写作能力。
+
+## 功能特点
+
+- **首页**：学习数据看板和快速入口
+- **AI智能助手**：提纲生成和写作建议
+- **AI作文批改**：实时评价和修改建议
+- **文档管理中心**：教师批改归档和对比分析
+- **历史轨迹**：全流程文档回溯
+
+## 技术栈
+
+- 前端：React + TypeScript + Tailwind CSS
+- 后端：Next.js API Routes + Firebase
+- AI集成：Cuze API（写作场景专用模型）
+- UI设计：符合Fluent Design System设计规范
+
+## 开始使用
+
+```bash
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+
+# 构建生产版本
+npm run build
+
+# 启动生产服务器
+npm start
+```
+
+## 项目结构
+
+```
+/app                  # Next.js App Router
+  /api                # API Routes
+  /components         # 共享组件
+  /modules            # 功能模块
+  /styles             # 样式文件
+  /utils              # 工具函数
+/public               # 静态资源
+/firebase             # Firebase配置
+```
 
 ## Getting Started
 

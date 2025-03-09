@@ -1,16 +1,33 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Box, Grid, Typography, Paper, useMediaQuery } from '@mui/material';
+import { Box, Grid, Typography, Paper, useMediaQuery, useTheme } from '@mui/material';
 import { Assignment as AssignmentIcon, Lightbulb as LightbulbIcon, 
-         RateReview as RateReviewIcon, Folder as FolderIcon } from '@mui/icons-material';
+         RateReview as RateReviewIcon, Folder as FolderIcon, 
+         Compare as CompareIcon } from '@mui/icons-material';
 import Layout from './components/layout/Layout';
 import Link from 'next/link';
 
+// 添加 ClientOnly 组件，用于仅在客户端渲染时显示内容
+function ClientOnly({ children }: { children: React.ReactNode }) {
+  const [hasMounted, setHasMounted] = useState(false);
+  
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  
+  if (!hasMounted) {
+    return null;
+  }
+  
+  return <>{children}</>;
+}
+
 export default function Home() {
-  // 使用useState和useEffect来避免SSR hydration不匹配问题
+  const theme = useTheme();
+  // 默认为非移动端布局，避免服务端/客户端不匹配
+  const isMobile = useMediaQuery('(max-width:600px)', { noSsr: true, defaultMatches: false });
   const [isMobileView, setIsMobileView] = useState(false);
-  const isMobile = useMediaQuery('(max-width:600px)');
   
   useEffect(() => {
     // 在客户端渲染时更新状态
@@ -29,26 +46,32 @@ export default function Home() {
     {
       title: '新建作文',
       description: '开始新作文并获取AI写作建议',
-      icon: <AssignmentIcon fontSize={isMobileView ? "medium" : "large"} color="primary" />,
+      icon: <AssignmentIcon fontSize="medium" color="primary" />,
       href: '/new-essay',
     },
     {
       title: 'AI作文批改',
       description: '实时评价和修改建议',
-      icon: <RateReviewIcon fontSize={isMobileView ? "medium" : "large"} color="primary" />,
+      icon: <RateReviewIcon fontSize="medium" color="primary" />,
       href: '/review',
     },
     {
-      title: '文档管理',
+      title: '老师修改',
+      description: '上传老师批改并分析对比',
+      icon: <CompareIcon fontSize="medium" color="primary" />,
+      href: '/teacher-review',
+    },
+    {
+      title: '作文管理',
       description: '查看和管理您的作文',
-      icon: <FolderIcon fontSize={isMobileView ? "medium" : "large"} color="primary" />,
+      icon: <FolderIcon fontSize="medium" color="primary" />,
       href: '/documents',
     },
   ];
 
   return (
     <Layout>
-      <Box sx={{ mb: isMobileView ? 3 : 6 }}>
+      <Box sx={{ mb: { xs: 3, md: 6 } }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
           欢迎回来，小作家！
         </Typography>
@@ -59,8 +82,8 @@ export default function Home() {
 
       {/* 数据统计卡片 */}
       <Paper elevation={0} sx={{ 
-        p: isMobileView ? 2 : 3, 
-        mb: isMobileView ? 3 : 6, 
+        p: { xs: 2, md: 3 }, 
+        mb: { xs: 3, md: 6 }, 
         borderRadius: 2, 
         bgcolor: '#f5f5f5',
         width: '100%',
@@ -73,7 +96,7 @@ export default function Home() {
           <Grid container spacing={0}>
             <Grid item xs={6} md={3} sx={{ p: 1 }}>
               <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
-                <Typography variant={isMobileView ? "h5" : "h4"} color="primary" sx={{ fontWeight: 'bold' }}>
+                <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
                   {stats.completedEssays}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -83,7 +106,7 @@ export default function Home() {
             </Grid>
             <Grid item xs={6} md={3} sx={{ p: 1 }}>
               <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
-                <Typography variant={isMobileView ? "h5" : "h4"} color="primary" sx={{ fontWeight: 'bold' }}>
+                <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
                   {stats.reviewedEssays}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -93,7 +116,7 @@ export default function Home() {
             </Grid>
             <Grid item xs={6} md={3} sx={{ p: 1 }}>
               <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
-                <Typography variant={isMobileView ? "h5" : "h4"} color="primary" sx={{ fontWeight: 'bold' }}>
+                <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
                   {stats.averageScore}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -103,7 +126,7 @@ export default function Home() {
             </Grid>
             <Grid item xs={6} md={3} sx={{ p: 1 }}>
               <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
-                <Typography variant={isMobileView ? "h5" : "h4"} color="primary" sx={{ fontWeight: 'bold' }}>
+                <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
                   {stats.improvementRate}%
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -116,7 +139,7 @@ export default function Home() {
       </Paper>
 
       {/* 快速入口 */}
-      <Typography variant="h6" sx={{ mb: isMobileView ? 1.5 : 2, fontWeight: 'bold' }}>
+      <Typography variant="h6" sx={{ mb: { xs: 1.5, md: 2 }, fontWeight: 'bold' }}>
         快速入口
       </Typography>
       <Box sx={{ width: '100%', mx: -1 }}>
@@ -127,7 +150,7 @@ export default function Home() {
                 <Paper
                   elevation={0}
                   sx={{
-                    p: isMobileView ? 1.5 : 3,
+                    p: { xs: 1.5, md: 3 },
                     height: '100%',
                     display: 'flex',
                     flexDirection: 'column',
@@ -135,24 +158,26 @@ export default function Home() {
                     borderRadius: 2,
                     transition: 'all 0.3s',
                     '&:hover': {
-                      transform: isMobileView ? 'translateY(-3px)' : 'translateY(-5px)',
+                      transform: { xs: 'translateY(-3px)', md: 'translateY(-5px)' },
                       boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
                     },
                   }}
                 >
-                  {link.icon}
-                  <Typography variant={isMobileView ? "subtitle1" : "h6"} sx={{ 
-                    mt: isMobileView ? 1 : 2, 
+                  <ClientOnly>
+                    {link.icon}
+                  </ClientOnly>
+                  <Typography variant="subtitle1" sx={{ 
+                    mt: { xs: 1, md: 2 }, 
                     fontWeight: 'bold', 
                     textAlign: 'center',
-                    fontSize: isMobileView ? '0.95rem' : '1.25rem'
+                    fontSize: { xs: '0.95rem', md: '1.25rem' }
                   }}>
                     {link.title}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ 
                     mt: 1, 
                     textAlign: 'center',
-                    fontSize: isMobileView ? '0.75rem' : '0.875rem'
+                    fontSize: { xs: '0.75rem', md: '0.875rem' }
                   }}>
                     {link.description}
                   </Typography>

@@ -6,12 +6,27 @@ import {
 } from '@mui/material';
 import {
   Menu as MenuIcon, Dashboard as DashboardIcon, Create as CreateIcon,
-  RateReview as RateReviewIcon, Psychology as PsychologyIcon,
+  RateReview as RateReviewIcon, Compare as CompareIcon,
   Folder as FolderIcon, AccountCircle as AccountCircleIcon,
   Logout as LogoutIcon
 } from '@mui/icons-material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
+// 添加 ClientOnly 组件，用于仅在客户端渲染时显示内容
+function ClientOnly({ children }: { children: ReactNode }) {
+  const [hasMounted, setHasMounted] = useState(false);
+  
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  
+  if (!hasMounted) {
+    return null;
+  }
+  
+  return <>{children}</>;
+}
 
 interface LayoutProps {
   children: ReactNode;
@@ -19,7 +34,8 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
-  const isMobileMQ = useMediaQuery(theme.breakpoints.down('md'));
+  // 默认为非移动端布局，避免服务端/客户端不匹配
+  const isMobileMQ = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true, defaultMatches: false });
   const [isMobile, setIsMobile] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
@@ -33,7 +49,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: '我的主页', icon: <DashboardIcon />, href: '/' },
     { text: '新建作文', icon: <CreateIcon />, href: '/new-essay' },
     { text: 'AI批改', icon: <RateReviewIcon />, href: '/review' },
-    { text: '文档管理', icon: <FolderIcon />, href: '/documents' },
+    { text: '老师修改', icon: <CompareIcon />, href: '/teacher-review' },
+    { text: '作文管理', icon: <FolderIcon />, href: '/documents' },
   ];
 
   const toggleDrawer = () => {
@@ -131,89 +148,91 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <CssBaseline />
-      <AppBar 
-        position="fixed" 
-        sx={{ 
-          zIndex: theme.zIndex.drawer + 1,
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-        }}
-      >
-        <Toolbar sx={{ height: isMobile ? 64 : 72 }}>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={toggleDrawer}
-            sx={{ mr: 2, display: { md: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography 
-            variant="h6" 
-            noWrap 
-            component="div" 
-            sx={{ 
-              flexGrow: 1,
-              fontSize: isMobile ? '1.2rem' : '1.5rem',
-              fontWeight: 'bold'
-            }}
-          >
-            小作家AI平台
-          </Typography>
-          <Avatar src="/avatar.png" alt="用户头像" sx={{ display: { xs: 'flex', md: 'none' }, width: 34, height: 34 }} />
-        </Toolbar>
-      </AppBar>
-      
-      {/* 桌面端永久显示的侧边栏 */}
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: 240,
-          flexShrink: 0,
-          display: { xs: 'none', md: 'block' },
-          '& .MuiDrawer-paper': {
+      <ClientOnly>
+        <AppBar 
+          position="fixed" 
+          sx={{ 
+            zIndex: theme.zIndex.drawer + 1,
+            boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+          }}
+        >
+          <Toolbar sx={{ height: isMobile ? 64 : 72 }}>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={toggleDrawer}
+              sx={{ mr: 2, display: { md: 'none' } }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Typography 
+              variant="h6" 
+              noWrap 
+              component="div" 
+              sx={{ 
+                flexGrow: 1,
+                fontSize: isMobile ? '1.2rem' : '1.5rem',
+                fontWeight: 'bold'
+              }}
+            >
+              小作家AI平台
+            </Typography>
+            <Avatar src="/avatar.png" alt="用户头像" sx={{ display: { xs: 'flex', md: 'none' }, width: 34, height: 34 }} />
+          </Toolbar>
+        </AppBar>
+        
+        {/* 桌面端永久显示的侧边栏 */}
+        <Drawer
+          variant="permanent"
+          sx={{
             width: 240,
-            boxSizing: 'border-box',
-          },
-        }}
-      >
-        <Toolbar />
-        {drawerContent}
-      </Drawer>
-      
-      {/* 移动端可切换显示的侧边栏 */}
-      <Drawer
-        variant="temporary"
-        open={drawerOpen}
-        onClose={toggleDrawer}
-        sx={{
-          display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': {
-            width: '85%',
-            maxWidth: 280,
-            boxSizing: 'border-box',
-          },
-        }}
-      >
-        {drawerContent}
-      </Drawer>
+            flexShrink: 0,
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': {
+              width: 240,
+              boxSizing: 'border-box',
+            },
+          }}
+        >
+          <Toolbar />
+          {drawerContent}
+        </Drawer>
+        
+        {/* 移动端可切换显示的侧边栏 */}
+        <Drawer
+          variant="temporary"
+          open={drawerOpen}
+          onClose={toggleDrawer}
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': {
+              width: '85%',
+              maxWidth: 280,
+              boxSizing: 'border-box',
+            },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      </ClientOnly>
       
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: isMobile ? 2 : 3,
+          p: { xs: 2, md: 3 },
           width: '100%',
           ml: { md: '240px' },
-          mt: isMobile ? '64px' : '72px',
+          mt: { xs: '64px', md: '72px' },
         }}
       >
         <Container 
           maxWidth={false} 
           disableGutters
           sx={{ 
-            py: isMobile ? 1 : 2,
-            px: isMobile ? 0.5 : 2,
+            py: { xs: 1, md: 2 },
+            px: { xs: 0.5, md: 2 },
             maxWidth: { xs: '100%', sm: '100%', md: 'lg' },
             overflowX: 'hidden'
           }}

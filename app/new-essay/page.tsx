@@ -13,6 +13,21 @@ import {
 import Layout from '../components/layout/Layout';
 import { useRouter } from 'next/navigation';
 
+// 添加 ClientOnly 组件，用于仅在客户端渲染时显示内容
+function ClientOnly({ children }: { children: React.ReactNode }) {
+  const [hasMounted, setHasMounted] = useState(false);
+  
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+  
+  if (!hasMounted) {
+    return null;
+  }
+  
+  return <>{children}</>;
+}
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -42,7 +57,8 @@ function TabPanel(props: TabPanelProps) {
 
 export default function NewEssay() {
   const theme = useTheme();
-  const isMobileMQ = useMediaQuery(theme.breakpoints.down('sm'));
+  // 避免服务端渲染不匹配
+  const isMobileMQ = useMediaQuery(theme.breakpoints.down('sm'), { noSsr: true, defaultMatches: false });
   const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
   const [title, setTitle] = useState('');
@@ -196,7 +212,7 @@ export default function NewEssay() {
 
   return (
     <Layout>
-      <Box sx={{ mb: isMobile ? 2 : 4 }}>
+      <Box sx={{ mb: { xs: 2, md: 4 } }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
           创建新作文
         </Typography>
@@ -213,30 +229,37 @@ export default function NewEssay() {
         display: 'flex',
         flexDirection: 'column'
       }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs 
-            value={tabValue} 
-            onChange={handleTabChange} 
-            aria-label="作文编辑标签"
-            variant={isMobile ? "fullWidth" : "standard"}
-          >
-            <Tab 
-              label="编辑作文" 
-              icon={<SaveIcon />} 
-              iconPosition="start"
-              sx={{ py: 1.5 }}
-            />
-            <Tab 
-              label="AI助手" 
-              icon={<PsychologyIcon />} 
-              iconPosition="start"
-              sx={{ py: 1.5 }}
-            />
-          </Tabs>
-        </Box>
+        <ClientOnly>
+          <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Tabs 
+              value={tabValue} 
+              onChange={handleTabChange} 
+              aria-label="作文编辑标签"
+              variant={isMobile ? "fullWidth" : "standard"}
+            >
+              <Tab 
+                label="编辑作文" 
+                icon={<SaveIcon />} 
+                iconPosition="start"
+                sx={{ py: 1.5 }}
+              />
+              <Tab 
+                label="AI助手" 
+                icon={<PsychologyIcon />} 
+                iconPosition="start"
+                sx={{ py: 1.5 }}
+              />
+            </Tabs>
+          </Box>
+        </ClientOnly>
 
         <TabPanel value={tabValue} index={0}>
-          <Box component="form" sx={{ p: isMobile ? 2 : 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Box component="form" sx={{ 
+            p: { xs: 2, md: 3 }, 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column' 
+          }}>
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid item xs={12} md={8}>
                 <TextField
@@ -280,37 +303,39 @@ export default function NewEssay() {
               sx={{ mb: 2, flexGrow: 1 }}
             />
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mt: 'auto' }}>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={() => setTabValue(1)}
-                startIcon={<PsychologyIcon />}
-              >
-                获取AI建议
-              </Button>
-              
-              <Box sx={{ display: 'flex', gap: 2 }}>
+            <ClientOnly>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mt: 'auto' }}>
                 <Button
                   variant="outlined"
-                  color="primary"
-                  onClick={handleSaveAsDraft}
-                  disabled={saving}
-                  startIcon={<SaveIcon />}
+                  color="secondary"
+                  onClick={() => setTabValue(1)}
+                  startIcon={<PsychologyIcon />}
                 >
-                  保存为草稿
+                  获取AI建议
                 </Button>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleSubmitForReview}
-                  disabled={saving}
-                  startIcon={<SendIcon />}
-                >
-                  提交批改
-                </Button>
+                
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={handleSaveAsDraft}
+                    disabled={saving}
+                    startIcon={<SaveIcon />}
+                  >
+                    保存为草稿
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleSubmitForReview}
+                    disabled={saving}
+                    startIcon={<SendIcon />}
+                  >
+                    提交批改
+                  </Button>
+                </Box>
               </Box>
-            </Box>
+            </ClientOnly>
           </Box>
         </TabPanel>
 

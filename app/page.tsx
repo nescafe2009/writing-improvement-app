@@ -27,22 +27,16 @@ export default function Home() {
 
   const quickLinks = [
     {
-      title: 'AI智能助手',
-      description: '获取写作提纲和建议',
-      icon: <LightbulbIcon fontSize={isMobileView ? "medium" : "large"} color="primary" />,
-      href: '/assistant',
+      title: '新建作文',
+      description: '开始新作文并获取AI写作建议',
+      icon: <AssignmentIcon fontSize={isMobileView ? "medium" : "large"} color="primary" />,
+      href: '/new-essay',
     },
     {
       title: 'AI作文批改',
       description: '实时评价和修改建议',
       icon: <RateReviewIcon fontSize={isMobileView ? "medium" : "large"} color="primary" />,
       href: '/review',
-    },
-    {
-      title: '新建作文',
-      description: '开始一篇新的作文',
-      icon: <AssignmentIcon fontSize={isMobileView ? "medium" : "large"} color="primary" />,
-      href: '/new-essay',
     },
     {
       title: '文档管理',

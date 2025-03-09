@@ -32,7 +32,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const menuItems = [
     { text: '我的主页', icon: <DashboardIcon />, href: '/' },
     { text: '新建作文', icon: <CreateIcon />, href: '/new-essay' },
-    { text: 'AI助手', icon: <PsychologyIcon />, href: '/assistant' },
     { text: 'AI批改', icon: <RateReviewIcon />, href: '/review' },
     { text: '文档管理', icon: <FolderIcon />, href: '/documents' },
   ];

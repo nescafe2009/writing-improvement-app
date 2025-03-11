@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Tabs, Tab, Table, TableBody, TableCell, TableContainer, 
-         TableHead, TableRow, Chip, IconButton, Button, CircularProgress, Alert, Snackbar } from '@mui/material';
+         TableHead, TableRow, Chip, IconButton, Button, CircularProgress, Alert, Snackbar,
+         Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
 import { Visibility as VisibilityIcon, Delete as DeleteIcon, Edit as EditIcon,
          BorderColor as BorderColorIcon, Psychology as PsychologyIcon, 
          School as SchoolIcon, Assignment as AssignmentIcon, Folder as FolderIcon,
@@ -49,6 +50,11 @@ export default function Documents() {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  
+  // 删除确认对话框状态
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<any>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // 获取文档列表的函数
   const fetchDocuments = async (type = 'all') => {
@@ -90,20 +96,52 @@ export default function Documents() {
     setTabValue(newValue);
   };
 
-  const handleDeleteDocument = async (id: string) => {
+  // 打开删除确认对话框
+  const handleOpenDeleteDialog = (document: any) => {
+    setDocumentToDelete(document);
+    setDeleteDialogOpen(true);
+  };
+
+  // 关闭删除确认对话框
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setDocumentToDelete(null);
+  };
+
+  // 确认删除文档
+  const handleConfirmDelete = async () => {
+    if (!documentToDelete) return;
+    
+    setDeleting(true);
+    
     try {
-      // 这里可以添加调用删除API的逻辑
-      setSnackbarMessage('删除功能尚未实现');
-      setSnackbarSeverity('error');
-      setOpenSnackbar(true);
+      const response = await fetch(`/api/documents/delete?filePath=${encodeURIComponent(documentToDelete.id)}`, {
+        method: 'DELETE',
+      });
       
-      // 临时从前端列表移除
-      setDocuments(documents.filter(doc => doc.id !== id));
+      const data = await response.json();
+      
+      if (data.success) {
+        // 从列表中移除已删除的文档
+        setDocuments(documents.filter(doc => doc.id !== documentToDelete.id));
+        setSnackbarMessage(`文档 "${documentToDelete.title}" 已成功删除`);
+        setSnackbarSeverity('success');
+      } else {
+        throw new Error(data.error || '删除失败');
+      }
     } catch (error: any) {
-      setSnackbarMessage('删除文档失败：' + (error.message || '未知错误'));
+      console.error('删除文档错误:', error);
+      setSnackbarMessage(`删除失败: ${error.message || '未知错误'}`);
       setSnackbarSeverity('error');
+    } finally {
+      setDeleting(false);
       setOpenSnackbar(true);
+      handleCloseDeleteDialog();
     }
+  };
+
+  const handleDeleteDocument = (document: any) => {
+    handleOpenDeleteDialog(document);
   };
 
   const handleRefresh = () => {
@@ -295,13 +333,42 @@ export default function Documents() {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+
+      {/* 删除确认对话框 */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          确认删除
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            您确定要删除文档 "{documentToDelete?.title}" 吗？此操作无法撤销。
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} disabled={deleting}>取消</Button>
+          <Button 
+            onClick={handleConfirmDelete} 
+            color="error" 
+            autoFocus
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={20} /> : null}
+          >
+            {deleting ? '删除中...' : '删除'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Layout>
   );
 }
 
 interface DocumentTableProps {
   documents: any[];
-  onDelete: (id: string) => void;
+  onDelete: (document: any) => void;
   getIconByType: (type: string) => React.ReactElement;
   getColorByType: (type: string) => string;
   getStatusByType: (type: string) => string;
@@ -344,7 +411,7 @@ function DocumentTable({ documents, onDelete, getIconByType, getColorByType, get
                         <VisibilityIcon fontSize="small" />
                       </IconButton>
                     </a>
-                    <IconButton color="error" size="small" onClick={() => onDelete(doc.id)}>
+                    <IconButton color="error" size="small" onClick={() => onDelete(doc)}>
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Box>

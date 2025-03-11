@@ -433,33 +433,36 @@ export default function Documents() {
           <Typography variant="h6" component="div">
             {documentToPreview?.title}
           </Typography>
-          <Box>
-            <Tooltip title="在新窗口打开">
+          {/* 只在客户端渲染这些按钮 */}
+          {typeof window !== 'undefined' && (
+            <Box>
+              <Tooltip title="在新窗口打开">
+                <IconButton 
+                  onClick={() => documentToPreview && handleOpenInNewWindow(documentToPreview)}
+                  size="small"
+                >
+                  <OpenInNewIcon />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="下载文档">
+                <IconButton 
+                  onClick={() => documentToPreview && handleDownloadDocument(documentToPreview)}
+                  size="small"
+                >
+                  <DownloadIcon />
+                </IconButton>
+              </Tooltip>
               <IconButton 
-                onClick={() => documentToPreview && handleOpenInNewWindow(documentToPreview)}
+                onClick={handleClosePreviewDialog}
                 size="small"
               >
-                <OpenInNewIcon />
+                <CloseIcon />
               </IconButton>
-            </Tooltip>
-            <Tooltip title="下载文档">
-              <IconButton 
-                onClick={() => documentToPreview && handleDownloadDocument(documentToPreview)}
-                size="small"
-              >
-                <DownloadIcon />
-              </IconButton>
-            </Tooltip>
-            <IconButton 
-              onClick={handleClosePreviewDialog}
-              size="small"
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
+            </Box>
+          )}
         </DialogTitle>
         <DialogContent sx={{ height: '70vh', padding: 0 }}>
-          {previewUrl && (
+          {previewUrl && typeof window !== 'undefined' && (
             <iframe 
               src={previewUrl}
               style={{ width: '100%', height: '100%', border: 'none' }}

@@ -176,7 +176,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 fontWeight: 'bold'
               }}
             >
-              小作家AI平台
+              小赵作文助手
             </Typography>
             <Avatar src="/avatar.png" alt="用户头像" sx={{ display: { xs: 'flex', md: 'none' }, width: 34, height: 34 }} />
           </Toolbar>

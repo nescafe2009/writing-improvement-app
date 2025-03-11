@@ -73,7 +73,7 @@ export default function Home() {
     <Layout>
       <Box sx={{ mb: { xs: 3, md: 6 } }}>
         <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-          欢迎回来，小作家！
+          欢迎回来，小作文家！
         </Typography>
         <Typography variant="subtitle1" color="text.secondary">
           继续提升你的写作能力，探索更多精彩内容。

@@ -63,6 +63,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
+      <head>
+        <title>小赵作文助手</title>
+        <meta name="description" content="帮助学生提升写作能力的智能作文助手" />
+      </head>
       <body className={inter.className}>
         <ThemeProvider theme={theme}>
           <CssBaseline />

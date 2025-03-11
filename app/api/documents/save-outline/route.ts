@@ -10,8 +10,8 @@ import {
 function generateUniqueFileName(title: string): string {
   // 使用作文标题作为文件名，进行安全处理
   const sanitizedTitle = title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_').substring(0, 50);
-  // 添加时间戳以确保唯一性
-  return `${sanitizedTitle}__${Date.now()}.docx`;
+  // 直接使用作文标题作为文件名，不添加时间戳
+  return `${sanitizedTitle}.docx`;
 }
 
 export async function POST(request: Request) {
@@ -31,35 +31,39 @@ export async function POST(request: Request) {
     // 添加标题 (四号宋体)
     docChildren.push(
       new Paragraph({
-        text: title,
         heading: HeadingLevel.HEADING_1,
         alignment: AlignmentType.CENTER,
         spacing: { after: 200 },
-        run: {
-          font: "SimSun", // 宋体
-          size: 32, // 四号 (32 half-points = 16pt)
-          bold: true,
-          color: "000000" // 黑色
-        }
+        children: [
+          new TextRun({
+            text: title,
+            font: "SimSun", // 宋体
+            size: 32, // 四号 (32 half-points = 16pt)
+            bold: true,
+            color: "000000" // 黑色
+          })
+        ]
       })
     );
     
     // 添加作文提纲标题 (小三号宋体)
     docChildren.push(
       new Paragraph({
-        text: "作文提纲",
         heading: HeadingLevel.HEADING_2,
         alignment: AlignmentType.CENTER,
         spacing: {
           before: 200,
           after: 200
         },
-        run: {
-          font: "SimSun", // 宋体
-          size: 30, // 小三号
-          bold: true,
-          color: "000000" // 黑色
-        }
+        children: [
+          new TextRun({
+            text: "作文提纲",
+            font: "SimSun", // 宋体
+            size: 30, // 小三号
+            bold: true,
+            color: "000000" // 黑色
+          })
+        ]
       })
     );
     
@@ -67,15 +71,17 @@ export async function POST(request: Request) {
     writingGuide.outline.forEach((section: any, index: number) => {
       docChildren.push(
         new Paragraph({
-          text: `${index + 1}. ${section.title}：${section.content}`,
           spacing: {
             after: 100
           },
-          run: {
-            font: "SimSun", // 宋体
-            size: 28, // 小四号 (28 half-points = 14pt)
-            color: "000000" // 黑色
-          }
+          children: [
+            new TextRun({
+              text: `${index + 1}. ${section.title}：${section.content}`,
+              font: "SimSun", // 宋体
+              size: 28, // 小四号 (28 half-points = 14pt)
+              color: "000000" // 黑色
+            })
+          ]
         })
       );
       
@@ -83,18 +89,20 @@ export async function POST(request: Request) {
         section.subItems.forEach((subItem: any) => {
           docChildren.push(
             new Paragraph({
-              text: `   - ${subItem.title}：${subItem.content}`,
               indent: {
                 left: convertInchesToTwip(0.3) // 左侧缩进
               },
               spacing: {
                 after: 100
               },
-              run: {
-                font: "SimSun", // 宋体
-                size: 28, // 小四号 (28 half-points = 14pt)
-                color: "000000" // 黑色
-              }
+              children: [
+                new TextRun({
+                  text: `   - ${subItem.title}：${subItem.content}`,
+                  font: "SimSun", // 宋体
+                  size: 28, // 小四号 (28 half-points = 14pt)
+                  color: "000000" // 黑色
+                })
+              ]
             })
           );
         });
@@ -104,33 +112,37 @@ export async function POST(request: Request) {
     // 添加写作建议
     docChildren.push(
       new Paragraph({
-        text: "写作建议",
         heading: HeadingLevel.HEADING_2,
         spacing: {
           before: 200,
           after: 200
         },
-        run: {
-          font: "SimSun", // 宋体
-          size: 30, // 小三号
-          bold: true,
-          color: "000000" // 黑色
-        }
+        children: [
+          new TextRun({
+            text: "写作建议",
+            font: "SimSun", // 宋体
+            size: 30, // 小三号
+            bold: true,
+            color: "000000" // 黑色
+          })
+        ]
       })
     );
     
     writingGuide.suggestions.forEach((suggestion: string, index: number) => {
       docChildren.push(
         new Paragraph({
-          text: `${index + 1}. ${suggestion}`,
           spacing: {
             after: 100
           },
-          run: {
-            font: "SimSun", // 宋体
-            size: 28, // 小四号 (28 half-points = 14pt)
-            color: "000000" // 黑色
-          }
+          children: [
+            new TextRun({
+              text: `${index + 1}. ${suggestion}`,
+              font: "SimSun", // 宋体
+              size: 28, // 小四号 (28 half-points = 14pt)
+              color: "000000" // 黑色
+            })
+          ]
         })
       );
     });
@@ -138,33 +150,37 @@ export async function POST(request: Request) {
     // 添加关键点
     docChildren.push(
       new Paragraph({
-        text: "关键点",
         heading: HeadingLevel.HEADING_2,
         spacing: {
           before: 200,
           after: 200
         },
-        run: {
-          font: "SimSun", // 宋体
-          size: 30, // 小三号
-          bold: true,
-          color: "000000" // 黑色
-        }
+        children: [
+          new TextRun({
+            text: "关键点",
+            font: "SimSun", // 宋体
+            size: 30, // 小三号
+            bold: true,
+            color: "000000" // 黑色
+          })
+        ]
       })
     );
     
     writingGuide.keyPoints.forEach((point: string, index: number) => {
       docChildren.push(
         new Paragraph({
-          text: `${index + 1}. ${point}`,
           spacing: {
             after: 100
           },
-          run: {
-            font: "SimSun", // 宋体
-            size: 28, // 小四号 (28 half-points = 14pt)
-            color: "000000" // 黑色
-          }
+          children: [
+            new TextRun({
+              text: `${index + 1}. ${point}`,
+              font: "SimSun", // 宋体
+              size: 28, // 小四号 (28 half-points = 14pt)
+              color: "000000" // 黑色
+            })
+          ]
         })
       );
     });
@@ -173,33 +189,37 @@ export async function POST(request: Request) {
     if (writingGuide.references && writingGuide.references.length > 0) {
       docChildren.push(
         new Paragraph({
-          text: "参考资料",
           heading: HeadingLevel.HEADING_2,
           spacing: {
             before: 200,
             after: 200
           },
-          run: {
-            font: "SimSun", // 宋体
-            size: 30, // 小三号
-            bold: true,
-            color: "000000" // 黑色
-          }
+          children: [
+            new TextRun({
+              text: "参考资料",
+              font: "SimSun", // 宋体
+              size: 30, // 小三号
+              bold: true,
+              color: "000000" // 黑色
+            })
+          ]
         })
       );
       
       writingGuide.references.forEach((ref: string, index: number) => {
         docChildren.push(
           new Paragraph({
-            text: `${index + 1}. ${ref}`,
             spacing: {
               after: 100
             },
-            run: {
-              font: "SimSun", // 宋体
-              size: 28, // 小四号 (28 half-points = 14pt)
-              color: "000000" // 黑色
-            }
+            children: [
+              new TextRun({
+                text: `${index + 1}. ${ref}`,
+                font: "SimSun", // 宋体
+                size: 28, // 小四号 (28 half-points = 14pt)
+                color: "000000" // 黑色
+              })
+            ]
           })
         );
       });

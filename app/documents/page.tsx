@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Tabs, Tab, Table, TableBody, TableCell, TableContainer, 
          TableHead, TableRow, Chip, IconButton, Button, CircularProgress, Alert, Snackbar,
-         Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from '@mui/material';
+         Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
+         Tooltip } from '@mui/material';
 import { Visibility as VisibilityIcon, Delete as DeleteIcon, Edit as EditIcon,
          BorderColor as BorderColorIcon, Psychology as PsychologyIcon, 
          School as SchoolIcon, Assignment as AssignmentIcon, Folder as FolderIcon,
-         Refresh as RefreshIcon } from '@mui/icons-material';
+         Refresh as RefreshIcon, DownloadForOffline as DownloadIcon,
+         Close as CloseIcon, OpenInNew as OpenInNewIcon } from '@mui/icons-material';
 import Layout from '../components/layout/Layout';
 import Link from 'next/link';
 
@@ -55,6 +57,11 @@ export default function Documents() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
+  
+  // 预览对话框状态
+  const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
+  const [documentToPreview, setDocumentToPreview] = useState<any>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
 
   // 获取文档列表的函数
   const fetchDocuments = async (type = 'all') => {
@@ -201,6 +208,47 @@ export default function Documents() {
     }
   };
 
+  // 打开预览对话框
+  const handleOpenPreviewDialog = (document: any) => {
+    // 对于DOCX文件，创建Google Docs Viewer URL
+    const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(document.url)}&embedded=true`;
+    setPreviewUrl(viewerUrl);
+    setDocumentToPreview(document);
+    setPreviewDialogOpen(true);
+  };
+
+  // 关闭预览对话框
+  const handleClosePreviewDialog = () => {
+    setPreviewDialogOpen(false);
+    setDocumentToPreview(null);
+    setPreviewUrl('');
+  };
+
+  // 下载文档
+  const handleDownloadDocument = (docItem: any) => {
+    // 确保代码只在客户端执行
+    if (typeof window !== 'undefined' && window.document) {
+      // 创建临时链接并点击下载
+      const link = window.document.createElement('a');
+      link.href = docItem.url;
+      link.target = '_blank';
+      link.download = docItem.title + '.docx';
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+    }
+  };
+
+  // 在新窗口打开预览
+  const handleOpenInNewWindow = (document: any) => {
+    // 确保代码只在客户端执行
+    if (typeof window !== 'undefined') {
+      // 对于DOCX文件，创建Google Docs Viewer URL
+      const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(document.url)}`;
+      window.open(viewerUrl, '_blank');
+    }
+  };
+
   return (
     <Layout>
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -273,6 +321,8 @@ export default function Documents() {
                 getIconByType={getIconByType}
                 getColorByType={getColorByType}
                 getStatusByType={getStatusByType}
+                onPreview={handleOpenPreviewDialog}
+                onDownload={handleDownloadDocument}
               />
             </TabPanel>
             <TabPanel value={tabValue} index={1}>
@@ -282,6 +332,8 @@ export default function Documents() {
                 getIconByType={getIconByType}
                 getColorByType={getColorByType}
                 getStatusByType={getStatusByType}
+                onPreview={handleOpenPreviewDialog}
+                onDownload={handleDownloadDocument}
               />
             </TabPanel>
             <TabPanel value={tabValue} index={2}>
@@ -291,6 +343,8 @@ export default function Documents() {
                 getIconByType={getIconByType}
                 getColorByType={getColorByType}
                 getStatusByType={getStatusByType}
+                onPreview={handleOpenPreviewDialog}
+                onDownload={handleDownloadDocument}
               />
             </TabPanel>
             <TabPanel value={tabValue} index={3}>
@@ -300,6 +354,8 @@ export default function Documents() {
                 getIconByType={getIconByType}
                 getColorByType={getColorByType}
                 getStatusByType={getStatusByType}
+                onPreview={handleOpenPreviewDialog}
+                onDownload={handleDownloadDocument}
               />
             </TabPanel>
             <TabPanel value={tabValue} index={4}>
@@ -309,6 +365,8 @@ export default function Documents() {
                 getIconByType={getIconByType}
                 getColorByType={getColorByType}
                 getStatusByType={getStatusByType}
+                onPreview={handleOpenPreviewDialog}
+                onDownload={handleDownloadDocument}
               />
             </TabPanel>
           </>
@@ -338,14 +396,14 @@ export default function Documents() {
       <Dialog
         open={deleteDialogOpen}
         onClose={handleCloseDeleteDialog}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
       >
-        <DialogTitle id="alert-dialog-title">
+        <DialogTitle id="delete-dialog-title">
           确认删除
         </DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-description">
+          <DialogContentText id="delete-dialog-description">
             您确定要删除文档 "{documentToDelete?.title}" 吗？此操作无法撤销。
           </DialogContentText>
         </DialogContent>
@@ -362,6 +420,54 @@ export default function Documents() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* 文档预览对话框 */}
+      <Dialog
+        open={previewDialogOpen}
+        onClose={handleClosePreviewDialog}
+        aria-labelledby="preview-dialog-title"
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle id="preview-dialog-title" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6" component="div">
+            {documentToPreview?.title}
+          </Typography>
+          <Box>
+            <Tooltip title="在新窗口打开">
+              <IconButton 
+                onClick={() => documentToPreview && handleOpenInNewWindow(documentToPreview)}
+                size="small"
+              >
+                <OpenInNewIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="下载文档">
+              <IconButton 
+                onClick={() => documentToPreview && handleDownloadDocument(documentToPreview)}
+                size="small"
+              >
+                <DownloadIcon />
+              </IconButton>
+            </Tooltip>
+            <IconButton 
+              onClick={handleClosePreviewDialog}
+              size="small"
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ height: '70vh', padding: 0 }}>
+          {previewUrl && (
+            <iframe 
+              src={previewUrl}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              title="文档预览"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }
@@ -372,9 +478,19 @@ interface DocumentTableProps {
   getIconByType: (type: string) => React.ReactElement;
   getColorByType: (type: string) => string;
   getStatusByType: (type: string) => string;
+  onPreview?: (document: any) => void;
+  onDownload?: (document: any) => void;
 }
 
-function DocumentTable({ documents, onDelete, getIconByType, getColorByType, getStatusByType }: DocumentTableProps) {
+function DocumentTable({ 
+  documents, 
+  onDelete, 
+  getIconByType, 
+  getColorByType, 
+  getStatusByType,
+  onPreview = () => {},
+  onDownload = () => {}
+}: DocumentTableProps) {
   return (
     <TableContainer>
       <Table>
@@ -406,14 +522,21 @@ function DocumentTable({ documents, onDelete, getIconByType, getColorByType, get
                 <TableCell>{doc.size || '-'}</TableCell>
                 <TableCell>
                   <Box sx={{ display: 'flex' }}>
-                    <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                      <IconButton color="primary" size="small">
+                    <Tooltip title="预览文档">
+                      <IconButton color="primary" size="small" onClick={() => onPreview(doc)}>
                         <VisibilityIcon fontSize="small" />
                       </IconButton>
-                    </a>
-                    <IconButton color="error" size="small" onClick={() => onDelete(doc)}>
-                      <DeleteIcon fontSize="small" />
-                    </IconButton>
+                    </Tooltip>
+                    <Tooltip title="下载文档">
+                      <IconButton color="primary" size="small" onClick={() => onDownload(doc)}>
+                        <DownloadIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="删除文档">
+                      <IconButton color="error" size="small" onClick={() => onDelete(doc)}>
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </Box>
                 </TableCell>
               </TableRow>

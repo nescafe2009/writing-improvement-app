@@ -143,7 +143,7 @@ export default function Review() {
     }
   };
 
-  // 模拟的评价功能
+  // 作文评价功能
   const handleSubmit = async () => {
     if (!essay.trim()) return;
 
@@ -175,10 +175,6 @@ export default function Review() {
     }
   };
 
-  const handleCloseSnackbar = () => {
-    setOpenSnackbar(false);
-  };
-
   // 添加处理下载的函数
   const handleDownload = () => {
     if (!feedback || !feedback.improvedEssay) return;
@@ -206,6 +202,10 @@ export default function Review() {
     // 显示成功消息
     setErrorMessage('作文已成功下载！');
     setOpenSnackbar(true);
+  };
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
   };
 
   return (
@@ -478,4 +478,4 @@ export default function Review() {
       </Snackbar>
     </Layout>
   );
-} 
+}

@@ -38,7 +38,8 @@ export async function POST(request: Request) {
         run: {
           font: "SimSun", // 宋体
           size: 32, // 四号 (32 half-points = 16pt)
-          bold: true
+          bold: true,
+          color: "000000" // 黑色
         }
       })
     );
@@ -56,7 +57,8 @@ export async function POST(request: Request) {
         run: {
           font: "SimSun", // 宋体
           size: 30, // 小三号
-          bold: true
+          bold: true,
+          color: "000000" // 黑色
         }
       })
     );
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
           run: {
             font: "SimSun", // 宋体
             size: 28, // 小四号 (28 half-points = 14pt)
+            color: "000000" // 黑色
           }
         })
       );
@@ -90,6 +93,7 @@ export async function POST(request: Request) {
               run: {
                 font: "SimSun", // 宋体
                 size: 28, // 小四号 (28 half-points = 14pt)
+                color: "000000" // 黑色
               }
             })
           );
@@ -109,7 +113,8 @@ export async function POST(request: Request) {
         run: {
           font: "SimSun", // 宋体
           size: 30, // 小三号
-          bold: true
+          bold: true,
+          color: "000000" // 黑色
         }
       })
     );
@@ -124,6 +129,7 @@ export async function POST(request: Request) {
           run: {
             font: "SimSun", // 宋体
             size: 28, // 小四号 (28 half-points = 14pt)
+            color: "000000" // 黑色
           }
         })
       );
@@ -141,7 +147,8 @@ export async function POST(request: Request) {
         run: {
           font: "SimSun", // 宋体
           size: 30, // 小三号
-          bold: true
+          bold: true,
+          color: "000000" // 黑色
         }
       })
     );
@@ -156,6 +163,7 @@ export async function POST(request: Request) {
           run: {
             font: "SimSun", // 宋体
             size: 28, // 小四号 (28 half-points = 14pt)
+            color: "000000" // 黑色
           }
         })
       );
@@ -174,7 +182,8 @@ export async function POST(request: Request) {
           run: {
             font: "SimSun", // 宋体
             size: 30, // 小三号
-            bold: true
+            bold: true,
+            color: "000000" // 黑色
           }
         })
       );
@@ -189,6 +198,7 @@ export async function POST(request: Request) {
             run: {
               font: "SimSun", // 宋体
               size: 28, // 小四号 (28 half-points = 14pt)
+              color: "000000" // 黑色
             }
           })
         );

@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
 import { cos, cosConfig, getPresignedUrl } from '@/config/cos';
+import { 
+  Document, Paragraph, TextRun, HeadingLevel, 
+  AlignmentType, Packer, convertInchesToTwip,
+  BorderStyle, SectionType, PageOrientation
+} from 'docx';
 
 // 用于生成文件名的辅助函数
 function generateUniqueFileName(title: string): string {
@@ -20,35 +25,197 @@ export async function POST(request: Request) {
       );
     }
 
-    // 准备写作提纲内容
-    let outlineContent = `${title}\n\n作文提纲\n\n`;
+    // 文档内容
+    const docChildren: Paragraph[] = [];
     
+    // 添加标题 (四号宋体)
+    docChildren.push(
+      new Paragraph({
+        text: title,
+        heading: HeadingLevel.HEADING_1,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+        run: {
+          font: "SimSun", // 宋体
+          size: 32, // 四号 (32 half-points = 16pt)
+          bold: true
+        }
+      })
+    );
+    
+    // 添加作文提纲标题 (小三号宋体)
+    docChildren.push(
+      new Paragraph({
+        text: "作文提纲",
+        heading: HeadingLevel.HEADING_2,
+        alignment: AlignmentType.CENTER,
+        spacing: {
+          before: 200,
+          after: 200
+        },
+        run: {
+          font: "SimSun", // 宋体
+          size: 30, // 小三号
+          bold: true
+        }
+      })
+    );
+    
+    // 添加提纲内容 (小四号宋体)
     writingGuide.outline.forEach((section: any, index: number) => {
-      outlineContent += `${index + 1}. ${section.title}：${section.content}\n`;
+      docChildren.push(
+        new Paragraph({
+          text: `${index + 1}. ${section.title}：${section.content}`,
+          spacing: {
+            after: 100
+          },
+          run: {
+            font: "SimSun", // 宋体
+            size: 28, // 小四号 (28 half-points = 14pt)
+          }
+        })
+      );
+      
       if (section.subItems && section.subItems.length > 0) {
-        section.subItems.forEach((subItem: any, subIndex: number) => {
-          outlineContent += `   - ${subItem.title}：${subItem.content}\n`;
+        section.subItems.forEach((subItem: any) => {
+          docChildren.push(
+            new Paragraph({
+              text: `   - ${subItem.title}：${subItem.content}`,
+              indent: {
+                left: convertInchesToTwip(0.3) // 左侧缩进
+              },
+              spacing: {
+                after: 100
+              },
+              run: {
+                font: "SimSun", // 宋体
+                size: 28, // 小四号 (28 half-points = 14pt)
+              }
+            })
+          );
         });
       }
     });
     
-    outlineContent += '\n写作建议：\n';
+    // 添加写作建议
+    docChildren.push(
+      new Paragraph({
+        text: "写作建议",
+        heading: HeadingLevel.HEADING_2,
+        spacing: {
+          before: 200,
+          after: 200
+        },
+        run: {
+          font: "SimSun", // 宋体
+          size: 30, // 小三号
+          bold: true
+        }
+      })
+    );
+    
     writingGuide.suggestions.forEach((suggestion: string, index: number) => {
-      outlineContent += `${index + 1}. ${suggestion}\n`;
+      docChildren.push(
+        new Paragraph({
+          text: `${index + 1}. ${suggestion}`,
+          spacing: {
+            after: 100
+          },
+          run: {
+            font: "SimSun", // 宋体
+            size: 28, // 小四号 (28 half-points = 14pt)
+          }
+        })
+      );
     });
     
-    outlineContent += '\n关键点：\n';
+    // 添加关键点
+    docChildren.push(
+      new Paragraph({
+        text: "关键点",
+        heading: HeadingLevel.HEADING_2,
+        spacing: {
+          before: 200,
+          after: 200
+        },
+        run: {
+          font: "SimSun", // 宋体
+          size: 30, // 小三号
+          bold: true
+        }
+      })
+    );
+    
     writingGuide.keyPoints.forEach((point: string, index: number) => {
-      outlineContent += `${index + 1}. ${point}\n`;
+      docChildren.push(
+        new Paragraph({
+          text: `${index + 1}. ${point}`,
+          spacing: {
+            after: 100
+          },
+          run: {
+            font: "SimSun", // 宋体
+            size: 28, // 小四号 (28 half-points = 14pt)
+          }
+        })
+      );
     });
     
+    // 添加参考资料（如果有）
     if (writingGuide.references && writingGuide.references.length > 0) {
-      outlineContent += '\n参考资料：\n';
+      docChildren.push(
+        new Paragraph({
+          text: "参考资料",
+          heading: HeadingLevel.HEADING_2,
+          spacing: {
+            before: 200,
+            after: 200
+          },
+          run: {
+            font: "SimSun", // 宋体
+            size: 30, // 小三号
+            bold: true
+          }
+        })
+      );
+      
       writingGuide.references.forEach((ref: string, index: number) => {
-        outlineContent += `${index + 1}. ${ref}\n`;
+        docChildren.push(
+          new Paragraph({
+            text: `${index + 1}. ${ref}`,
+            spacing: {
+              after: 100
+            },
+            run: {
+              font: "SimSun", // 宋体
+              size: 28, // 小四号 (28 half-points = 14pt)
+            }
+          })
+        );
       });
     }
-
+    
+    // 创建Word文档并添加内容
+    const doc = new Document({
+      sections: [{
+        properties: {
+          type: SectionType.CONTINUOUS,
+          page: {
+            margin: {
+              top: 600, // 上边距
+              right: 600, // 右边距
+              bottom: 600, // 下边距
+              left: 600, // 左边距
+            }
+          }
+        },
+        children: docChildren
+      }]
+    });
+    
+    // 生成Word文档的二进制数据
+    const buffer = await Packer.toBuffer(doc);
+    
     // 生成文件名
     const fileName = generateUniqueFileName(title);
     
@@ -60,13 +227,13 @@ export async function POST(request: Request) {
       Region: cosConfig.Region
     });
     
-    // 上传文本内容到腾讯云COS
+    // 上传文档内容到腾讯云COS
     return new Promise(async (resolve, reject) => {
       cos.putObject({
         Bucket: cosConfig.Bucket,
         Region: cosConfig.Region,
         Key: filePath,
-        Body: outlineContent,
+        Body: buffer, // 使用文档二进制数据
         ContentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ACL: 'public-read', // 设置对象的访问权限为公共可读
       }, async (err, data) => {

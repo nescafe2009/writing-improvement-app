@@ -119,8 +119,8 @@ export default function NewEssay() {
     }
   };
 
-  // 下载提纲DOCX文档
-  const handleDownloadOutline = () => {
+  // 下载提纲DOCX文档并保存到服务器
+  const handleDownloadOutline = async () => {
     if (!writingGuide) {
       setSnackbarMessage('请先获取AI写作建议');
       setSnackbarSeverity('error');
@@ -128,52 +128,53 @@ export default function NewEssay() {
       return;
     }
     
-    // 在实际应用中，这里应该是向服务器发送请求，获取生成的docx文件
-    // 此处仅为模拟，在实际实现中需要使用服务端生成docx文件
+    // 显示保存中状态
+    setSaving(true);
     
-    // 准备写作提纲内容
-    let outlineContent = `${title}\n\n作文提纲\n\n`;
-    
-    writingGuide.outline.forEach((section, index) => {
-      outlineContent += `${index + 1}. ${section.title}：${section.content}\n`;
-      if (section.subItems && section.subItems.length > 0) {
-        section.subItems.forEach((subItem, subIndex) => {
-          outlineContent += `   - ${subItem.title}：${subItem.content}\n`;
-        });
-      }
-    });
-    
-    outlineContent += '\n写作建议：\n';
-    writingGuide.suggestions.forEach((suggestion, index) => {
-      outlineContent += `${index + 1}. ${suggestion}\n`;
-    });
-    
-    outlineContent += '\n关键点：\n';
-    writingGuide.keyPoints.forEach((point, index) => {
-      outlineContent += `${index + 1}. ${point}\n`;
-    });
-    
-    if (writingGuide.references && writingGuide.references.length > 0) {
-      outlineContent += '\n参考资料：\n';
-      writingGuide.references.forEach((ref, index) => {
-        outlineContent += `${index + 1}. ${ref}\n`;
+    try {
+      // 调用API保存文档到服务器
+      const response = await fetch('/api/documents/save-outline', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title,
+          grade,
+          writingGuide
+        }),
       });
+      
+      if (!response.ok) {
+        throw new Error('保存文档失败');
+      }
+      
+      const data = await response.json();
+      
+      // 使用返回的URL创建下载链接
+      if (data.fileUrl) {
+        const link = document.createElement('a');
+        link.href = data.fileUrl;
+        link.target = '_blank';
+        link.download = data.fileName || (title + '_作文提纲.docx');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setSnackbarMessage('文档已保存到服务器并开始下载');
+        setSnackbarSeverity('success');
+      } else {
+        setSnackbarMessage('文档已保存到服务器');
+        setSnackbarSeverity('success');
+      }
+    } catch (error) {
+      console.error('保存文档错误:', error);
+      setSnackbarMessage('保存文档失败，请稍后重试');
+      setSnackbarSeverity('error');
+    } finally {
+      setSaving(false);
+      setOpenSnackbar(true);
     }
-    
-    // 模拟下载过程，创建一个临时链接
-    const blob = new Blob([outlineContent], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = writingGuide.filename || (title + '_作文提纲.docx');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    setSnackbarMessage('AI写作建议文档已开始下载');
-    setSnackbarSeverity('success');
-    setOpenSnackbar(true);
   };
 
   const handleCloseSnackbar = () => {
@@ -283,7 +284,7 @@ export default function NewEssay() {
                       AI写作建议 (由DeepSeek提供)
                     </Typography>
                     <Box>
-                      <Tooltip title="下载AI建议DOCX">
+                      <Tooltip title="确认并下载AI建议DOCX">
                         <IconButton size="small" onClick={(e) => {
                           e.stopPropagation();
                           handleDownloadOutline();
@@ -395,9 +396,9 @@ export default function NewEssay() {
                 color="primary"
                 onClick={handleDownloadOutline}
                 disabled={saving || !writingGuide}
-                startIcon={<FileDownloadIcon />}
+                startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <FileDownloadIcon />}
               >
-                下载AI建议
+                {saving ? '保存中...' : '确认并下载AI建议'}
               </Button>
             </Box>
           </ClientOnly>

@@ -1,31 +1,11 @@
-// Firebase配置
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { getStorage } from 'firebase/storage';
+// 腾讯云COS配置
+import { cos, cosConfig } from '@/config/cos';
 
-// 您的Firebase配置
-// 注意：在实际生产环境中，应该使用环境变量存储这些敏感信息
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-};
+// 为了保持兼容性，我们从腾讯云COS配置中导出相同的变量名
+// 这样可以避免修改其他引用了这个文件的代码
+const storage = cos;
+const db = null; // 如果需要数据库功能，请使用其他服务替代
+const auth = null; // 如果需要认证功能，请使用其他服务替代
+const app = null; // 应用实例置为null
 
-// 初始化Firebase
-const app = initializeApp(firebaseConfig);
-
-// 获取Firestore实例
-const db = getFirestore(app);
-
-// 获取Auth实例
-const auth = getAuth(app);
-
-// 获取Storage实例
-const storage = getStorage(app);
-
-export { app, db, auth, storage }; 
+export { app, db, auth, storage };

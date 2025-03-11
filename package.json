@@ -15,6 +15,7 @@
     "@fluentui/react-icons": "^2.0.279",
     "@mui/icons-material": "^6.4.7",
     "@mui/material": "^6.4.7",
+    "cos-nodejs-sdk-v5": "^2.14.6",
     "firebase": "^11.4.0",
     "next": "15.2.1",
     "react": "^19.0.0",

@@ -3,15 +3,15 @@ import { cos, cosConfig, getPresignedUrl } from '@/config/cos';
 import { 
   Document, Paragraph, TextRun, HeadingLevel, 
   AlignmentType, Packer, convertInchesToTwip,
-  BorderStyle, SectionType, PageOrientation
+  BorderStyle, SectionType
 } from 'docx';
 
 // 用于生成文件名的辅助函数
 function generateUniqueFileName(title: string): string {
   // 使用作文标题作为文件名，进行安全处理
   const sanitizedTitle = title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_').substring(0, 50);
-  // 直接使用作文标题作为文件名，不再添加时间戳
-  return `${sanitizedTitle}.docx`;
+  // 添加时间戳以确保唯一性
+  return `${sanitizedTitle}__${Date.now()}.docx`;
 }
 
 export async function POST(request: Request) {
@@ -234,7 +234,8 @@ export async function POST(request: Request) {
     
     console.log('COS配置:', {
       Bucket: cosConfig.Bucket,
-      Region: cosConfig.Region
+      Region: cosConfig.Region,
+      FilePath: filePath
     });
     
     // 上传文档内容到腾讯云COS
@@ -245,7 +246,11 @@ export async function POST(request: Request) {
         Key: filePath,
         Body: buffer, // 使用文档二进制数据
         ContentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        ACL: 'public-read', // 设置对象的访问权限为公共可读
+        ACL: 'default', // 使用存储桶默认权限，应确保存储桶本身具有公共读取权限
+        // StorageClass: 'STANDARD', // 存储类型，默认标准存储
+        onProgress: function(progressData) {
+          console.log('上传进度:', JSON.stringify(progressData));
+        }
       }, async (err, data) => {
         if (err) {
           console.error('上传到腾讯云COS失败:', err);
@@ -256,14 +261,18 @@ export async function POST(request: Request) {
         }
         
         try {
+          console.log('文件上传成功:', data);
+          
           // 生成带签名的下载URL
           const signedUrl = await getPresignedUrl(filePath, 3600); // 1小时有效期
+          console.log('生成签名URL成功:', signedUrl);
           
           // 返回成功响应，包含文件URL和文件名
           resolve(NextResponse.json({
             success: true,
             fileUrl: signedUrl, // 使用带签名的URL
             fileName: fileName,
+            filePath: filePath,
             message: '文件已成功保存到腾讯云COS'
           }));
         } catch (error: any) {
@@ -274,6 +283,7 @@ export async function POST(request: Request) {
             success: true,
             fileUrl: downloadURL,
             fileName: fileName,
+            filePath: filePath,
             message: '文件已成功保存到腾讯云COS（无签名URL）'
           }));
         }

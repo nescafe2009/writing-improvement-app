@@ -14,7 +14,7 @@ function generateUniqueFileName(title: string, grade: string): string {
   const timestamp = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 14);
   // 添加年级信息
   const gradeText = getGradeText(grade);
-  return `${gradeText}_${sanitizedTitle}_修改_${timestamp}.docx`;
+  return `${gradeText}_${sanitizedTitle}_初稿_${timestamp}.docx`;
 }
 
 // 将年级数字转换为文本
@@ -332,8 +332,8 @@ export async function POST(request: Request) {
     // 生成文件名
     const fileName = generateUniqueFileName(title, gradeToUse);
     
-    // 在腾讯云COS中创建文件路径 - 保存到revisions子目录
-    const filePath = `revisions/${fileName}`;
+    // 在腾讯云COS中创建文件路径 - 保存到"作文初稿"子目录
+    const filePath = `outlines/${gradeText}/作文初稿/${fileName}`;
     
     console.log('COS配置:', {
       Bucket: cosConfig.Bucket,
@@ -376,7 +376,7 @@ export async function POST(request: Request) {
             fileUrl: signedUrl, // 使用带签名的URL
             fileName: fileName,
             filePath: filePath,
-            message: '修改后的作文已成功保存到腾讯云COS'
+            message: '作文初稿已成功保存到腾讯云COS'
           }));
         } catch (error: any) {
           console.error('生成签名URL失败:', error);
@@ -387,16 +387,16 @@ export async function POST(request: Request) {
             fileUrl: downloadURL,
             fileName: fileName,
             filePath: filePath,
-            message: '修改后的作文已成功保存到腾讯云COS（无签名URL）'
+            message: '作文初稿已成功保存到腾讯云COS（无签名URL）'
           }));
         }
       });
     });
 
   } catch (error: any) {
-    console.error('保存修改后作文错误:', error);
+    console.error('保存作文初稿错误:', error);
     return NextResponse.json(
-      { error: `保存修改后作文失败：${error.message || '未知错误'}` },
+      { error: `保存作文初稿失败：${error.message || '未知错误'}` },
       { status: 500 }
     );
   }

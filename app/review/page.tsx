@@ -264,14 +264,17 @@ export default function Review() {
     try {
       setLoading(true); // 开始加载状态
       
-      // 调用API保存修改后的作文为Word文档
-      const response = await fetch('/api/documents/save-revision', {
+      // 提取作文标题 - 使用文本的前几个字或第一行作为标题
+      const essayTitle = essay.split('\n')[0].trim().substring(0, 20) || '作文';
+      
+      // 调用新API保存多个文档
+      const response = await fetch('/api/documents/save-multiple', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: '修改后的作文',
+          title: essayTitle,
           essay: essay, // 原始作文
           feedback: feedback, // 包含了改进后的作文和反馈信息
           grade: grade, // 添加年级信息
@@ -285,23 +288,23 @@ export default function Review() {
 
       const data = await response.json();
       
-      // 获取签名的URL并触发下载
-      const signedUrl = data.signedUrl;
+      // 获取AI修改文档的签名URL并触发下载
+      const signedUrl = data.improvedFile.url;
       
       // 创建一个隐藏的链接并触发下载
       const link = document.createElement('a');
       link.href = signedUrl;
-      link.download = '修改后的作文.docx'; // 这个只是建议的文件名，实际由浏览器和服务器决定
+      link.download = data.improvedFile.fileName; // 使用服务器提供的文件名
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
       // 显示成功消息
-      setErrorMessage('作文已成功保存并下载为Word文档！');
+      setErrorMessage('作文已成功保存，AI修改版本已下载！');
       setOpenSnackbar(true);
     } catch (error: any) {
-      console.error('下载Word文档错误:', error);
-      setErrorMessage(`下载失败: ${error.message}`);
+      console.error('处理文档错误:', error);
+      setErrorMessage(`保存失败: ${error.message}`);
       setOpenSnackbar(true);
     } finally {
       setLoading(false); // 结束加载状态
@@ -588,7 +591,7 @@ export default function Review() {
                 startIcon={<DownloadIcon />}
                 onClick={handleDownload}
               >
-                确认修改并下载
+                确认AI修改并下载
               </Button>
             </Box>
             <Paper variant="outlined" sx={{ p: isMobile ? 1.5 : 2, bgcolor: 'white' }}>

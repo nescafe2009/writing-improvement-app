@@ -288,20 +288,23 @@ export default function Review() {
 
       const data = await response.json();
       
-      // 获取AI修改文档的签名URL并触发下载
-      const signedUrl = data.improvedFile.url;
-      
-      // 创建一个隐藏的链接并触发下载
-      const link = document.createElement('a');
-      link.href = signedUrl;
-      link.download = data.improvedFile.fileName; // 使用服务器提供的文件名
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // 显示成功消息
-      setErrorMessage('作文已成功保存，AI修改版本已下载！');
-      setOpenSnackbar(true);
+      if (data.improvedFile.url) {
+        // 创建一个隐藏的链接并触发下载
+        const link = document.createElement('a');
+        link.href = data.improvedFile.url;
+        link.download = data.improvedFile.fileName; // 使用服务器提供的文件名
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // 显示成功消息
+        setErrorMessage('作文已成功保存至云端，AI修改版本已下载！');
+        setOpenSnackbar(true);
+      } else {
+        // 显示成功消息但没有下载链接
+        setErrorMessage('作文已成功保存至云端！');
+        setOpenSnackbar(true);
+      }
     } catch (error: any) {
       console.error('处理文档错误:', error);
       setErrorMessage(`保存失败: ${error.message}`);

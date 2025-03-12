@@ -28,14 +28,28 @@ function getGradeText(grade: string): string {
 
 // 生成安全的文件名
 function sanitizeFileName(title: string): string {
-  return title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_').substring(0, 50);
+  // 只保留汉字字符
+  let chineseOnly = '';
+  for (let i = 0; i < title.length; i++) {
+    const char = title.charAt(i);
+    if (/[\u4e00-\u9fa5]/.test(char)) { // 仅保留汉字
+      chineseOnly += char;
+    }
+  }
+  
+  // 如果过滤后没有汉字，使用默认名称
+  if (chineseOnly.length === 0) {
+    return '作文';
+  }
+  
+  // 截取合适长度
+  return chineseOnly.substring(0, 20);
 }
 
-// 生成唯一的文件名
+// 生成文件名
 function generateFileName(title: string, suffix: string): string {
   const sanitizedTitle = sanitizeFileName(title);
-  const timestamp = new Date().toISOString().replace(/[-:.]/g, '').substring(0, 14);
-  return `${sanitizedTitle}-${suffix}_${timestamp}.docx`;
+  return `${sanitizedTitle}-${suffix}.docx`;
 }
 
 // 创建初稿文档
@@ -475,7 +489,7 @@ export async function POST(request: Request) {
     const improvedFileName = generateFileName(title, 'AI修改');
     
     // 生成文件路径
-    const draftFilePath = `outlines/${gradeText}/作文提纲/${draftFileName}`;
+    const draftFilePath = `outlines/${gradeText}/作文初稿/${draftFileName}`;
     const reviewFilePath = `outlines/${gradeText}/AI评价/${reviewFileName}`;
     const improvedFilePath = `outlines/${gradeText}/AI修改/${improvedFileName}`;
     
@@ -511,7 +525,7 @@ export async function POST(request: Request) {
         fileName: improvedFileName,
         filePath: improvedFilePath
       },
-      message: 'AI评价和修改已成功保存'
+      message: '作文原稿、AI评价和AI修改已成功保存到云端'
     });
     
   } catch (error: any) {

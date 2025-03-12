@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, Typography, Paper, TextField, Button, Grid, Snackbar, Alert,
   Card, CardContent, Collapse, Tooltip, CircularProgress, IconButton,
-  useTheme, useMediaQuery
+  useTheme, useMediaQuery, FormControl, InputLabel, Select, MenuItem, SelectChangeEvent
 } from '@mui/material';
 import { 
   Download as DownloadIcon, AutoAwesome as AutoAwesomeIcon, 
@@ -50,7 +50,7 @@ export default function NewEssay() {
   const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
   const [title, setTitle] = useState('');
-  const [grade, setGrade] = useState('三年级');
+  const [grade, setGrade] = useState('');
   const [saving, setSaving] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -60,6 +60,97 @@ export default function NewEssay() {
   const [generatingOutline, setGeneratingOutline] = useState(false);
   const [writingGuide, setWritingGuide] = useState<WritingGuide | null>(null);
   const [outlineExpanded, setOutlineExpanded] = useState(true);
+
+  // 计算当前年级的函数
+  const calculateCurrentGrade = (): string => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // JavaScript月份从0开始
+    
+    // 基准：
+    // 2024年上半年是5年级上学期
+    // 2024年下半年是5年级下学期
+    // 2025年上半年是初一上学期
+    
+    // 上海学制：小学5年（1-5年级），初中4年（6-9年级，对应初一至初四），高中3年（10-12年级）
+    
+    // 上学期：2-7月，下学期：9-1月
+    const isFirstHalf = currentMonth >= 2 && currentMonth <= 7;
+    const isSecondHalf = currentMonth >= 9 || currentMonth == 1;
+    
+    if (currentYear == 2024) {
+      if (isFirstHalf) {
+        return "5"; // 2024上半年：5年级上学期
+      } else if (isSecondHalf) {
+        return "5"; // 2024下半年：5年级下学期
+      }
+    } else if (currentYear == 2025) {
+      if (isFirstHalf) {
+        return "6"; // 2025上半年：初一上学期
+      } else if (isSecondHalf) {
+        return "6"; // 2025下半年：初一下学期
+      }
+    } else if (currentYear > 2025) {
+      // 2025年之后
+      const yearDiff = currentYear - 2025;
+      const baseGrade = 6; // 2025年上半年是初一(6)
+      
+      if (isFirstHalf) {
+        // 上半年
+        const calculatedGrade = baseGrade + yearDiff;
+        return Math.min(12, calculatedGrade).toString();
+      } else if (isSecondHalf) {
+        // 下半年
+        const calculatedGrade = baseGrade + yearDiff;
+        return Math.min(12, calculatedGrade).toString();
+      }
+    } else if (currentYear < 2024) {
+      // 2024年之前，按每年递减一个年级计算
+      const yearDiff = 2024 - currentYear;
+      const baseGrade = 5; // 2024年上半年是5年级
+      
+      if (isFirstHalf) {
+        // 上半年
+        const calculatedGrade = baseGrade - yearDiff;
+        return Math.max(1, calculatedGrade).toString();
+      } else if (isSecondHalf) {
+        // 下半年
+        const calculatedGrade = baseGrade - yearDiff;
+        return Math.max(1, calculatedGrade).toString();
+      }
+    }
+    
+    // 默认返回5年级（如果月份不在定义的学期范围内）
+    return "5";
+  };
+
+  // 处理年级变化
+  const handleGradeChange = (event: SelectChangeEvent) => {
+    setGrade(event.target.value);
+  };
+
+  // 添加辅助函数：将数字格式的年级转换为文字格式
+  const convertGradeToText = (grade: string): string => {
+    const gradeNumber = parseInt(grade);
+    if (gradeNumber <= 5) {
+      // 小学年级：1-5对应"一年级"到"五年级"
+      const gradeText = ['一', '二', '三', '四', '五'][gradeNumber - 1];
+      return `${gradeText}年级`;
+    } else if (gradeNumber <= 9) {
+      // 初中年级：6-9对应"初一"到"初四"
+      const gradeText = ['初一', '初二', '初三', '初四'][gradeNumber - 6];
+      return gradeText;
+    } else {
+      // 高中年级：10-12对应"高一"到"高三"
+      const gradeText = ['高一', '高二', '高三'][gradeNumber - 10];
+      return gradeText;
+    }
+  };
+
+  // 在组件加载时设置默认年级
+  useEffect(() => {
+    setGrade(calculateCurrentGrade());
+  }, []);
 
   useEffect(() => {
     // 在客户端渲染时更新状态，避免hydration不匹配
@@ -78,6 +169,9 @@ export default function NewEssay() {
     setGeneratingOutline(true);
     
     try {
+      // 转换年级格式
+      const textGrade = convertGradeToText(grade);
+      
       // 调用DeepSeek API获取AI写作建议
       const response = await fetch('/api/deepseek/writing-advice', {
         method: 'POST',
@@ -86,7 +180,7 @@ export default function NewEssay() {
         },
         body: JSON.stringify({ 
           title, 
-          grade 
+          grade: textGrade // 使用转换后的文字格式年级
         }),
       });
 
@@ -132,6 +226,9 @@ export default function NewEssay() {
     setSaving(true);
     
     try {
+      // 转换年级格式
+      const textGrade = convertGradeToText(grade);
+      
       // 调用API保存文档到服务器
       const response = await fetch('/api/documents/save-outline', {
         method: 'POST',
@@ -140,7 +237,7 @@ export default function NewEssay() {
         },
         body: JSON.stringify({
           title,
-          grade,
+          grade: textGrade, // 使用转换后的文字格式年级
           writingGuide
         }),
       });
@@ -213,23 +310,30 @@ export default function NewEssay() {
             </Grid>
             <Grid item xs={12} md={4}>
               <Box sx={{ display: 'flex', gap: 1, height: '100%' }}>
-                <TextField
-                  select
-                  label="年级"
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                  SelectProps={{
-                    native: true,
-                  }}
-                  fullWidth
-                  sx={{ flexGrow: 1 }}
-                >
-                  {['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'].map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </TextField>
+                <FormControl fullWidth sx={{ flexGrow: 1 }}>
+                  <InputLabel id="grade-select-label">年级</InputLabel>
+                  <Select
+                    labelId="grade-select-label"
+                    id="grade-select"
+                    value={grade}
+                    label="年级"
+                    onChange={handleGradeChange}
+                    size={isMobile ? "small" : "medium"}
+                  >
+                    <MenuItem value="1">一年级</MenuItem>
+                    <MenuItem value="2">二年级</MenuItem>
+                    <MenuItem value="3">三年级</MenuItem>
+                    <MenuItem value="4">四年级</MenuItem>
+                    <MenuItem value="5">五年级</MenuItem>
+                    <MenuItem value="6">初一</MenuItem>
+                    <MenuItem value="7">初二</MenuItem>
+                    <MenuItem value="8">初三</MenuItem>
+                    <MenuItem value="9">初四</MenuItem>
+                    <MenuItem value="10">高一</MenuItem>
+                    <MenuItem value="11">高二</MenuItem>
+                    <MenuItem value="12">高三</MenuItem>
+                  </Select>
+                </FormControl>
                 <Button
                   variant="contained"
                   color="primary"
@@ -304,8 +408,6 @@ export default function NewEssay() {
                     </Box>
                   </Box>
                   
-                  {/* 其余部分保持不变 */}
-
                   <Collapse in={outlineExpanded}>
                     <Box sx={{ mt: 1.5 }}>
                       <Typography variant="body2" fontWeight="bold" gutterBottom>

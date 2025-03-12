@@ -10,10 +10,12 @@ interface DocumentTypeMap {
 function inferDocumentType(key: string): string {
   if (key.includes('/作文提纲/')) {
     return 'outline';
-  } else if (key.includes('/草稿/')) {
+  } else if (key.includes('/作文初稿/')) {
     return 'draft';
+  } else if (key.includes('/AI评价/')) {
+    return 'ai_review';
   } else if (key.includes('/AI修改/')) {
-    return 'ai_revised';
+    return 'ai_improved';
   } else if (key.includes('/老师批改/')) {
     return 'teacher_final';
   } else {

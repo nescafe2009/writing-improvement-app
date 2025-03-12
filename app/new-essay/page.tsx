@@ -68,9 +68,8 @@ export default function NewEssay() {
     const currentMonth = now.getMonth() + 1; // JavaScript月份从0开始
     
     // 基准：
-    // 2024年上半年是5年级上学期
-    // 2024年下半年是5年级下学期
-    // 2025年上半年是初一上学期
+    // 2025年上半年小赵上5年级 (学校的5年级)
+    // 2025年下半年小赵上初一 (学校的6年级)
     
     // 上海学制：小学5年（1-5年级），初中4年（6-9年级，对应初一至初四），高中3年（10-12年级）
     
@@ -78,45 +77,40 @@ export default function NewEssay() {
     const isFirstHalf = currentMonth >= 2 && currentMonth <= 7;
     const isSecondHalf = currentMonth >= 9 || currentMonth == 1;
     
-    if (currentYear == 2024) {
+    if (currentYear == 2025) {
       if (isFirstHalf) {
-        return "5"; // 2024上半年：5年级上学期
+        return "5"; // 2025上半年：5年级上学期
       } else if (isSecondHalf) {
-        return "5"; // 2024下半年：5年级下学期
-      }
-    } else if (currentYear == 2025) {
-      if (isFirstHalf) {
-        return "6"; // 2025上半年：初一上学期
-      } else if (isSecondHalf) {
-        return "6"; // 2025下半年：初一下学期
+        return "6"; // 2025下半年：初一（6年级）下学期
       }
     } else if (currentYear > 2025) {
       // 2025年之后
       const yearDiff = currentYear - 2025;
-      const baseGrade = 6; // 2025年上半年是初一(6)
+      const baseGradeFirstHalf = 5; // 2025年上半年是5年级
+      const baseGradeSecondHalf = 6; // 2025年下半年是初一（6年级）
       
       if (isFirstHalf) {
         // 上半年
-        const calculatedGrade = baseGrade + yearDiff;
+        const calculatedGrade = baseGradeFirstHalf + yearDiff;
         return Math.min(12, calculatedGrade).toString();
       } else if (isSecondHalf) {
         // 下半年
-        const calculatedGrade = baseGrade + yearDiff;
+        const calculatedGrade = baseGradeSecondHalf + yearDiff;
         return Math.min(12, calculatedGrade).toString();
       }
-    } else if (currentYear < 2024) {
-      // 2024年之前，按每年递减一个年级计算
-      const yearDiff = 2024 - currentYear;
-      const baseGrade = 5; // 2024年上半年是5年级
+    } else if (currentYear < 2025) {
+      // 2025年之前，按每年递减一个年级计算
+      const yearDiff = 2025 - currentYear;
+      const baseGrade = 5; // 2025年上半年是5年级
       
       if (isFirstHalf) {
         // 上半年
         const calculatedGrade = baseGrade - yearDiff;
         return Math.max(1, calculatedGrade).toString();
       } else if (isSecondHalf) {
-        // 下半年
-        const calculatedGrade = baseGrade - yearDiff;
-        return Math.max(1, calculatedGrade).toString();
+        // 下半年，提前一个年级
+        const calculatedGrade = baseGrade - yearDiff + 1;
+        return Math.max(1, Math.min(12, calculatedGrade)).toString();
       }
     }
     

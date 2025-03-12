@@ -37,10 +37,11 @@ function TabPanel(props: TabPanelProps) {
 
 // 文档类型映射
 const TAB_TYPES = [
-  'all',      // 全部文档
-  'outline',  // 提纲和写作建议
-  'draft',    // 作文草稿
-  'ai_revised', // AI修改初稿
+  'all',         // 全部文档
+  'outline',     // 提纲和写作建议
+  'draft',       // 作文初稿
+  'ai_review',   // AI评价
+  'ai_improved', // AI修改稿
   'teacher_final' // 老师修改终稿
 ];
 
@@ -167,7 +168,9 @@ export default function Documents() {
         return <AssignmentIcon fontSize="small" />;
       case 'draft':
         return <BorderColorIcon fontSize="small" />;
-      case 'ai_revised':
+      case 'ai_review':
+        return <PsychologyIcon fontSize="small" />;
+      case 'ai_improved':
         return <PsychologyIcon fontSize="small" />;
       case 'teacher_final':
         return <SchoolIcon fontSize="small" />;
@@ -183,7 +186,9 @@ export default function Documents() {
         return 'info';
       case 'draft':
         return 'default';
-      case 'ai_revised':
+      case 'ai_review':
+        return 'warning';
+      case 'ai_improved':
         return 'secondary';
       case 'teacher_final':
         return 'success';
@@ -196,11 +201,13 @@ export default function Documents() {
   const getStatusByType = (type: string) => {
     switch (type) {
       case 'outline':
-        return '提纲和建议';
+        return '提纲和写作建议';
       case 'draft':
-        return '作文草稿';
-      case 'ai_revised':
-        return 'AI修改初稿';
+        return '作文初稿';
+      case 'ai_review':
+        return 'AI评价';
+      case 'ai_improved':
+        return 'AI修改稿';
       case 'teacher_final':
         return '老师修改终稿';
       default:
@@ -291,12 +298,17 @@ export default function Documents() {
               iconPosition="start"
             />
             <Tab 
-              label="作文草稿" 
+              label="作文初稿" 
               icon={<BorderColorIcon />} 
               iconPosition="start"
             />
             <Tab 
-              label="AI修改初稿" 
+              label="AI评价" 
+              icon={<PsychologyIcon />} 
+              iconPosition="start"
+            />
+            <Tab 
+              label="AI修改稿" 
               icon={<PsychologyIcon />} 
               iconPosition="start"
             />
@@ -359,6 +371,17 @@ export default function Documents() {
               />
             </TabPanel>
             <TabPanel value={tabValue} index={4}>
+              <DocumentTable 
+                documents={documents} 
+                onDelete={handleDeleteDocument}
+                getIconByType={getIconByType}
+                getColorByType={getColorByType}
+                getStatusByType={getStatusByType}
+                onPreview={handleOpenPreviewDialog}
+                onDownload={handleDownloadDocument}
+              />
+            </TabPanel>
+            <TabPanel value={tabValue} index={5}>
               <DocumentTable 
                 documents={documents} 
                 onDelete={handleDeleteDocument}

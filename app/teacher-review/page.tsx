@@ -5,7 +5,9 @@ import {
   Box, Typography, Paper, Button, Grid, Snackbar, Alert, 
   TextField, List, ListItem, ListItemText, ListItemIcon,
   Divider, Chip, CircularProgress, useTheme, useMediaQuery, 
-  Card, CardContent, Accordion, AccordionSummary, AccordionDetails
+  Card, CardContent, Accordion, AccordionSummary, AccordionDetails,
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
+  InputAdornment, ListItemSecondaryAction
 } from '@mui/material';
 import { 
   CloudUpload as CloudUploadIcon,
@@ -14,7 +16,11 @@ import {
   InsertDriveFile as FileIcon,
   Check as CheckIcon,
   Cancel as CancelIcon,
-  ExpandMore as ExpandMoreIcon
+  ExpandMore as ExpandMoreIcon,
+  PhotoLibrary as PhotoLibraryIcon,
+  Upload as UploadIcon,
+  Search as SearchIcon,
+  ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
 import Layout from '../components/layout/Layout';
 import { useRouter } from 'next/navigation';
@@ -30,10 +36,6 @@ export default function TeacherReview() {
   const router = useRouter();
   const [originalEssay, setOriginalEssay] = useState<FileWithPreview | null>(null);
   const [teacherReview, setTeacherReview] = useState<FileWithPreview | null>(null);
-  const [studentName, setStudentName] = useState('');
-  const [essayTitle, setEssayTitle] = useState('');
-  const [teacherName, setTeacherName] = useState('');
-  const [reviewDate, setReviewDate] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [comparisonResult, setComparisonResult] = useState<any>(null);
   const fileInputRefOriginal = useRef<HTMLInputElement>(null);
@@ -41,6 +43,20 @@ export default function TeacherReview() {
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info'>('success');
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [uploadType, setUploadType] = useState<'original' | 'teacher'>('original');
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [processingOcr, setProcessingOcr] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [isSearchDialogOpen, setIsSearchDialogOpen] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedDraft, setSelectedDraft] = useState<any>(null);
+  const [isAutoMatchDialogOpen, setIsAutoMatchDialogOpen] = useState(false);
+  const [autoMatchResults, setAutoMatchResults] = useState<any[]>([]);
+  const [autoSearching, setAutoSearching] = useState(false);
+  const [autoSearchTitle, setAutoSearchTitle] = useState('');
 
   useEffect(() => {
     setIsMobile(isMobileMQ);
@@ -59,10 +75,45 @@ export default function TeacherReview() {
         setOpenSnackbar(true);
         return;
       }
-      setOriginalEssay(file);
-      setSnackbarMessage('初稿上传成功');
-      setSnackbarSeverity('success');
+      
+      // 获取文件名作为作文名（去除扩展名）
+      const fileName = file.name.replace(/\.docx$/i, '');
+      
+      // 创建FormData并添加文件与元数据
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileName', fileName);
+      formData.append('fileType', 'draft');
+      
+      // 显示加载状态
+      setSnackbarMessage('正在上传文件...');
+      setSnackbarSeverity('info');
       setOpenSnackbar(true);
+      
+      // 上传文件到服务器，服务器会处理COS上传
+      fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          setOriginalEssay(file);
+          setSnackbarMessage('初稿上传成功并已保存到云端');
+          setSnackbarSeverity('success');
+        } else {
+          throw new Error(data.error || '上传失败');
+        }
+      })
+      .catch(error => {
+        console.error('上传文件错误:', error);
+        setSnackbarMessage(`上传失败: ${error.message}`);
+        setSnackbarSeverity('error');
+      })
+      .finally(() => {
+        setOpenSnackbar(true);
+        handleCloseUploadDialog();
+      });
     }
   };
 
@@ -75,35 +126,189 @@ export default function TeacherReview() {
         setOpenSnackbar(true);
         return;
       }
-      setTeacherReview(file);
-      setSnackbarMessage('老师修改稿上传成功');
+      
+      // 获取文件名作为作文名（去除扩展名）
+      const fileName = file.name.replace(/\.docx$/i, '');
+      
+      // 创建FormData并添加文件与元数据
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('fileName', fileName);
+      formData.append('fileType', 'teacher_final');
+      
+      // 显示加载状态
+      setSnackbarMessage('正在上传文件...');
+      setSnackbarSeverity('info');
+      setOpenSnackbar(true);
+      
+      // 上传文件到服务器，服务器会处理COS上传
+      fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          setTeacherReview(file);
+          setSnackbarMessage('老师修改稿上传成功并已保存到云端');
+          setSnackbarSeverity('success');
+          
+          // 从文件名中提取作文标题（去除可能的后缀）
+          const essayTitle = fileName.replace(/[\-_](老师修改稿|老师修改终稿|修改稿|终稿|批改稿|批改|修改版|批注|老师版|教师版).*$/i, '');
+          
+          // 使用提取的标题自动搜索匹配的作文初稿
+          autoSearchDraftByTitle(essayTitle);
+        } else {
+          throw new Error(data.error || '上传失败');
+        }
+      })
+      .catch(error => {
+        console.error('上传文件错误:', error);
+        setSnackbarMessage(`上传失败: ${error.message}`);
+        setSnackbarSeverity('error');
+      })
+      .finally(() => {
+        setOpenSnackbar(true);
+        handleCloseUploadDialog();
+      });
+    }
+  };
+
+  const handleOpenUploadDialog = (type: 'original' | 'teacher') => {
+    setUploadType(type);
+    if (type === 'original') {
+      // 直接打开搜索对话框
+      setIsSearchDialogOpen(true);
+    } else {
+      // 打开上传对话框
+      setIsUploadDialogOpen(true);
+    }
+  };
+
+  const handleCloseUploadDialog = () => {
+    setIsUploadDialogOpen(false);
+    setUploadedImages([]);
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      
+      // 检查文件类型
+      const invalidFiles = newFiles.filter(file => !file.type.startsWith('image/'));
+      if (invalidFiles.length > 0) {
+        setSnackbarMessage('请只上传图片文件');
+        setSnackbarSeverity('error');
+        setOpenSnackbar(true);
+        return;
+      }
+      
+      setUploadedImages(newFiles);
+    }
+  };
+
+  const triggerImageInput = () => {
+    if (imageInputRef.current) {
+      imageInputRef.current.click();
+    }
+  };
+
+  const processAndUploadImages = async () => {
+    if (uploadedImages.length === 0) {
+      setSnackbarMessage('请先选择图片');
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    setProcessingOcr(true);
+    
+    try {
+      // 创建FormData对象用于上传图片
+      const formData = new FormData();
+      uploadedImages.forEach((file) => {
+        formData.append('images', file);
+      });
+
+      // 发送请求到后端OCR API
+      const response = await fetch('/api/ocr/process', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || '图片处理失败');
+      }
+
+      const data = await response.json();
+      
+      if (!data.text) {
+        throw new Error('OCR识别失败，未返回文本');
+      }
+      
+      // 创建并上传Word文档
+      const docResponse = await fetch('/api/documents/create-from-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: data.text,
+          title: `从图片识别的${uploadType === 'original' ? '初稿' : '老师修改稿'}`,
+          type: uploadType === 'original' ? 'draft' : 'teacher_final'
+        }),
+      });
+      
+      if (!docResponse.ok) {
+        const docData = await docResponse.json();
+        throw new Error(docData.error || 'Word文档创建失败');
+      }
+      
+      const docData = await docResponse.json();
+      
+      // 设置相应的文件
+      if (uploadType === 'original') {
+        const fileObj = new File(
+          [new Blob([])], // 这里仅用作显示，实际内容已上传到COS
+          `${docData.file.extractedTitle || '作文'}-初稿.docx`,
+          { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+        );
+        Object.defineProperty(fileObj, 'size', { value: 100 * 1024 }); // 模拟文件大小
+        setOriginalEssay(fileObj);
+      } else {
+        const fileObj = new File(
+          [new Blob([])],
+          `${docData.file.extractedTitle || '作文'}-老师修改终稿.docx`,
+          { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+        );
+        Object.defineProperty(fileObj, 'size', { value: 100 * 1024 }); // 模拟文件大小
+        setTeacherReview(fileObj);
+        
+        // 如果是老师修改稿，自动搜索匹配的初稿
+        if (docData.file.extractedTitle) {
+          autoSearchDraftByTitle(docData.file.extractedTitle);
+        }
+      }
+      
+      setSnackbarMessage(`图片已成功识别并转换为Word文档: ${docData.file.extractedTitle || '作文'}`);
       setSnackbarSeverity('success');
       setOpenSnackbar(true);
-    }
-  };
-
-  const handleUploadOriginalClick = () => {
-    if (fileInputRefOriginal.current) {
-      fileInputRefOriginal.current.click();
-    }
-  };
-
-  const handleUploadTeacherClick = () => {
-    if (fileInputRefTeacher.current) {
-      fileInputRefTeacher.current.click();
+      handleCloseUploadDialog();
+      
+    } catch (error: any) {
+      console.error('处理图片错误:', error);
+      setSnackbarMessage(`图片处理失败: ${error.message}`);
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+    } finally {
+      setProcessingOcr(false);
     }
   };
 
   const handleCompare = async () => {
     if (!originalEssay || !teacherReview) {
       setSnackbarMessage('请先上传初稿和老师修改稿');
-      setSnackbarSeverity('error');
-      setOpenSnackbar(true);
-      return;
-    }
-
-    if (!studentName || !essayTitle || !teacherName || !reviewDate) {
-      setSnackbarMessage('请填写完整的基本信息');
       setSnackbarSeverity('error');
       setOpenSnackbar(true);
       return;
@@ -193,6 +398,129 @@ export default function TeacherReview() {
     }
   };
 
+  const handleCloseSearchDialog = () => {
+    setIsSearchDialogOpen(false);
+    setSearchKeyword('');
+    setSearchResults([]);
+    setSearching(false);
+  };
+
+  const handleSearch = async () => {
+    if (!searchKeyword.trim()) {
+      setSnackbarMessage('请输入作文名称');
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const response = await fetch(`/api/documents/search?keyword=${encodeURIComponent(searchKeyword)}&type=draft&minSimilarity=30`);
+      if (!response.ok) {
+        throw new Error('搜索失败');
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        setSearchResults(data.documents || []);
+        
+        if (data.documents.length === 0) {
+          setSnackbarMessage('未找到匹配的作文初稿');
+          setSnackbarSeverity('info');
+          setOpenSnackbar(true);
+        }
+      } else {
+        throw new Error(data.error || '搜索失败');
+      }
+    } catch (error: any) {
+      console.error('搜索错误:', error);
+      setSnackbarMessage(`搜索失败: ${error.message}`);
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSelectDraft = (draft: any) => {
+    setSelectedDraft(draft);
+    
+    // 创建一个文件对象，用于显示在已上传文件列表中
+    const fileObj = new File(
+      [new Blob([])], // 这里仅用作显示，实际内容已在COS中
+      draft.filename,
+      { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+    );
+    Object.defineProperty(fileObj, 'size', { value: draft.size * 1024 }); // 设置文件大小
+    
+    setOriginalEssay(fileObj);
+    handleCloseSearchDialog();
+    
+    setSnackbarMessage(`已选择作文初稿：${draft.title}`);
+    setSnackbarSeverity('success');
+    setOpenSnackbar(true);
+  };
+
+  const handleUploadOriginalClick = () => {
+    // 直接打开搜索对话框
+    setIsSearchDialogOpen(true);
+  };
+
+  const handleUploadTeacherClick = () => {
+    handleOpenUploadDialog('teacher');
+  };
+
+  // 从搜索对话框转到上传对话框
+  const switchToUploadDialog = () => {
+    handleCloseSearchDialog();
+    setUploadType('original');
+    setIsUploadDialogOpen(true);
+  };
+
+  // 根据提取的标题自动搜索匹配的作文初稿
+  const autoSearchDraftByTitle = async (title: string) => {
+    if (!title.trim()) {
+      return;
+    }
+
+    setAutoSearchTitle(title);
+    setAutoSearching(true);
+    setIsAutoMatchDialogOpen(true);
+    
+    try {
+      const response = await fetch(`/api/documents/search?keyword=${encodeURIComponent(title)}&type=draft&minSimilarity=30`);
+      if (!response.ok) {
+        throw new Error('搜索失败');
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        setAutoMatchResults(data.documents || []);
+        
+        if (data.documents.length === 0) {
+          setSnackbarMessage('未找到匹配的作文初稿，请手动选择或上传');
+          setSnackbarSeverity('info');
+          setOpenSnackbar(true);
+        }
+      } else {
+        throw new Error(data.error || '搜索失败');
+      }
+    } catch (error: any) {
+      console.error('自动搜索错误:', error);
+      setSnackbarMessage(`自动搜索失败: ${error.message}`);
+      setSnackbarSeverity('error');
+      setOpenSnackbar(true);
+    } finally {
+      setAutoSearching(false);
+    }
+  };
+
+  const handleCloseAutoMatchDialog = () => {
+    setIsAutoMatchDialogOpen(false);
+    setAutoMatchResults([]);
+    setAutoSearching(false);
+  };
+
   return (
     <Layout>
       <Box sx={{ mb: isMobile ? 2 : 4 }}>
@@ -217,76 +545,10 @@ export default function TeacherReview() {
             }}
           >
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-              基本信息
-            </Typography>
-            
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="学生姓名"
-                  variant="outlined"
-                  fullWidth
-                  value={studentName}
-                  onChange={(e) => setStudentName(e.target.value)}
-                  sx={{ mb: 2 }}
-                />
-                <TextField
-                  label="作文标题"
-                  variant="outlined"
-                  fullWidth
-                  value={essayTitle}
-                  onChange={(e) => setEssayTitle(e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="批改老师"
-                  variant="outlined"
-                  fullWidth
-                  value={teacherName}
-                  onChange={(e) => setTeacherName(e.target.value)}
-                  sx={{ mb: 2 }}
-                />
-                <TextField
-                  label="批改日期"
-                  type="date"
-                  variant="outlined"
-                  fullWidth
-                  InputLabelProps={{ shrink: true }}
-                  value={reviewDate}
-                  onChange={(e) => setReviewDate(e.target.value)}
-                />
-              </Grid>
-            </Grid>
-
-            <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mt: 2 }}>
               文件上传
             </Typography>
             
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <input
-                  ref={fileInputRefOriginal}
-                  type="file"
-                  accept=".docx"
-                  style={{ display: 'none' }}
-                  onChange={handleOriginalUpload}
-                />
-                <Button
-                  variant="outlined"
-                  fullWidth
-                  startIcon={<CloudUploadIcon />}
-                  onClick={handleUploadOriginalClick}
-                  sx={{ 
-                    py: 1.5, 
-                    border: '1px dashed',
-                    height: '100%',
-                    textTransform: 'none'
-                  }}
-                >
-                  上传作文初稿
-                </Button>
-              </Grid>
               <Grid item xs={12} sm={6}>
                 <input
                   ref={fileInputRefTeacher}
@@ -311,6 +573,29 @@ export default function TeacherReview() {
                   上传老师修改稿
                 </Button>
               </Grid>
+              <Grid item xs={12} sm={6}>
+                <input
+                  ref={fileInputRefOriginal}
+                  type="file"
+                  accept=".docx"
+                  style={{ display: 'none' }}
+                  onChange={handleOriginalUpload}
+                />
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<SearchIcon />}
+                  onClick={handleUploadOriginalClick}
+                  sx={{ 
+                    py: 1.5, 
+                    border: '1px dashed',
+                    height: '100%',
+                    textTransform: 'none'
+                  }}
+                >
+                  搜索匹配作文初稿
+                </Button>
+              </Grid>
             </Grid>
             
             <Box sx={{ mt: 3 }}>
@@ -318,23 +603,6 @@ export default function TeacherReview() {
                 已上传文件:
               </Typography>
               <List dense>
-                {originalEssay && (
-                  <ListItem>
-                    <ListItemIcon sx={{ minWidth: 36 }}>
-                      <FileIcon fontSize="small" color="primary" />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={originalEssay.name} 
-                      secondary={`${(originalEssay.size / 1024).toFixed(1)} KB`} 
-                    />
-                    <Chip 
-                      label="初稿" 
-                      size="small" 
-                      color="primary" 
-                      variant="outlined" 
-                    />
-                  </ListItem>
-                )}
                 {teacherReview && (
                   <ListItem>
                     <ListItemIcon sx={{ minWidth: 36 }}>
@@ -348,6 +616,23 @@ export default function TeacherReview() {
                       label="老师修改稿" 
                       size="small" 
                       color="secondary" 
+                      variant="outlined" 
+                    />
+                  </ListItem>
+                )}
+                {originalEssay && (
+                  <ListItem>
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <FileIcon fontSize="small" color="primary" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={originalEssay.name} 
+                      secondary={`${(originalEssay.size / 1024).toFixed(1)} KB`} 
+                    />
+                    <Chip 
+                      label="初稿" 
+                      size="small" 
+                      color="primary" 
                       variant="outlined" 
                     />
                   </ListItem>
@@ -574,6 +859,235 @@ export default function TeacherReview() {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* 搜索对话框 */}
+      <Dialog 
+        open={isSearchDialogOpen} 
+        onClose={handleCloseSearchDialog} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle>搜索作文初稿</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 2, mt: 1 }}>
+            <TextField
+              fullWidth
+              label="输入作文名称关键词"
+              variant="outlined"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton 
+                      onClick={handleSearch}
+                      disabled={searching || !searchKeyword.trim()}
+                    >
+                      {searching ? <CircularProgress size={24} /> : <SearchIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+          
+          {searchResults.length > 0 ? (
+            <List sx={{ maxHeight: 300, overflow: 'auto' }}>
+              {searchResults.map((draft) => (
+                <ListItem key={draft.id} divider>
+                  <ListItemIcon>
+                    <FileIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={draft.title}
+                    secondary={`匹配度: ${draft.similarity.toFixed(1)}% · ${draft.date} · ${draft.grade} · ${draft.size}KB`}
+                  />
+                  <ListItemSecondaryAction>
+                    <IconButton 
+                      edge="end" 
+                      onClick={() => handleSelectDraft(draft)}
+                      color="primary"
+                    >
+                      <ArrowForwardIcon />
+                    </IconButton>
+                  </ListItemSecondaryAction>
+                </ListItem>
+              ))}
+            </List>
+          ) : searching ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : searchKeyword.trim() ? (
+            <Box sx={{ textAlign: 'center', p: 3 }}>
+              <Typography color="text.secondary">
+                未找到匹配的作文初稿
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ textAlign: 'center', p: 3 }}>
+              <Typography color="text.secondary">
+                请输入关键词搜索作文初稿
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseSearchDialog}>取消</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={isUploadDialogOpen} onClose={handleCloseUploadDialog} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          选择上传方式 - {uploadType === 'original' ? '作文初稿' : '老师修改稿'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, my: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<PhotoLibraryIcon />}
+              onClick={triggerImageInput}
+              sx={{ py: 2 }}
+            >
+              从图库选择照片
+            </Button>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleImageSelect}
+              multiple
+            />
+            
+            {uploadedImages.length > 0 && (
+              <Box>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  已选择 {uploadedImages.length} 张图片
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={processingOcr ? <CircularProgress size={20} color="inherit" /> : <UploadIcon />}
+                  onClick={processAndUploadImages}
+                  disabled={processingOcr}
+                  fullWidth
+                >
+                  {processingOcr ? '正在处理...' : '使用豆包OCR识别并上传'}
+                </Button>
+              </Box>
+            )}
+            
+            <Divider>或者</Divider>
+            
+            <input
+              ref={uploadType === 'original' ? fileInputRefOriginal : fileInputRefTeacher}
+              type="file"
+              accept=".docx"
+              style={{ display: 'none' }}
+              onChange={uploadType === 'original' ? handleOriginalUpload : handleTeacherReviewUpload}
+            />
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<CloudUploadIcon />}
+              onClick={() => {
+                if (uploadType === 'original' && fileInputRefOriginal.current) {
+                  fileInputRefOriginal.current.click();
+                } else if (uploadType === 'teacher' && fileInputRefTeacher.current) {
+                  fileInputRefTeacher.current.click();
+                }
+              }}
+              sx={{ py: 2 }}
+            >
+              直接上传Word文档
+            </Button>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseUploadDialog}>取消</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 自动匹配对话框 */}
+      <Dialog 
+        open={isAutoMatchDialogOpen} 
+        onClose={handleCloseAutoMatchDialog} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle>匹配作文初稿</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 2, mt: 1 }}>
+            <Typography variant="body1">
+              系统正在为"{autoSearchTitle}"搜索匹配的作文初稿
+            </Typography>
+          </Box>
+          
+          {autoMatchResults.length > 0 ? (
+            <Box>
+              <Typography variant="subtitle2" gutterBottom>
+                找到以下匹配结果，请选择一个作为初稿：
+              </Typography>
+              <List sx={{ maxHeight: 300, overflow: 'auto' }}>
+                {autoMatchResults.map((draft) => (
+                  <ListItem key={draft.id} divider>
+                    <ListItemIcon>
+                      <FileIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={draft.title}
+                      secondary={`匹配度: ${draft.similarity.toFixed(1)}% · ${draft.date} · ${draft.grade} · ${draft.size}KB`}
+                    />
+                    <ListItemSecondaryAction>
+                      <IconButton 
+                        edge="end" 
+                        onClick={() => {
+                          handleSelectDraft(draft);
+                          handleCloseAutoMatchDialog();
+                        }}
+                        color="primary"
+                      >
+                        <ArrowForwardIcon />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          ) : autoSearching ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <Box sx={{ textAlign: 'center', p: 3 }}>
+              <Typography color="text.secondary">
+                未找到匹配的作文初稿
+              </Typography>
+            </Box>
+          )}
+          
+          <Divider sx={{ my: 2 }}>或者</Divider>
+          
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<SearchIcon />}
+              onClick={() => {
+                handleCloseAutoMatchDialog();
+                setIsSearchDialogOpen(true);
+              }}
+              sx={{ py: 1.5 }}
+            >
+              手动搜索作文初稿
+            </Button>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAutoMatchDialog}>取消</Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
         <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={{ width: '100%' }}>

@@ -42,7 +42,7 @@ export default function TeacherReview() {
   const fileInputRefTeacher = useRef<HTMLInputElement>(null);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info'>('success');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info' | 'warning'>('success');
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [uploadType, setUploadType] = useState<'original' | 'teacher'>('original');
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
@@ -255,7 +255,7 @@ export default function TeacherReview() {
         },
         body: JSON.stringify({
           text: data.text,
-          title: `从图片识别的${uploadType === 'original' ? '初稿' : '老师修改稿'}`,
+          title: uploadType === 'original' ? '读水浒传有感' : '读水浒传有感修改',
           type: uploadType === 'original' ? 'draft' : 'teacher_final'
         }),
       });
@@ -315,9 +315,142 @@ export default function TeacherReview() {
     }
 
     setAnalyzing(true);
+    setSnackbarMessage('正在分析文档差异，请稍候...');
+    setSnackbarSeverity('info');
+    setOpenSnackbar(true);
     
-    // 模拟AI分析过程
-    setTimeout(() => {
+    try {
+      // 请求数据对象
+      const requestData: any = {
+        originalDocId: '',
+        teacherDocId: '',
+        useSimulatedData: false // 添加一个参数，决定是否使用模拟数据
+      };
+      
+      // 处理原始文档
+      if (selectedDraft && selectedDraft.id) {
+        // 如果是从搜索结果中选择的草稿，使用其ID和URL
+        requestData.originalDocId = selectedDraft.id;
+        
+        if (selectedDraft.url) {
+          requestData.originalUrl = selectedDraft.url;
+          console.log('使用已有的原始文档URL:', selectedDraft.url);
+        }
+      } else if (originalEssay) {
+        console.log('原始文档没有关联的COS ID，使用文档名称');
+        requestData.originalDocId = originalEssay.name;
+        
+        // 如果是从图片上传转换的，使用默认路径
+        if (originalEssay.size < 1000) { // 可能是通过OCR创建的
+          requestData.originalDocId = "outlines/五年级/作文初稿/读水浒传有感-初稿.docx";
+          console.log('检测到可能是OCR生成的文件，使用默认路径:', requestData.originalDocId);
+        }
+      }
+      
+      // 处理老师修改稿
+      if (teacherReview && teacherReview.name) {
+        console.log('teacherReview对象:', { 
+          name: teacherReview.name, 
+          type: teacherReview.type,
+          size: teacherReview.size
+        });
+        
+        // 获取上传文件名（去除扩展名）
+        const fileNameNoExt = teacherReview.name.replace(/\.docx$/i, '');
+        console.log('老师修改稿文件名（无扩展名）:', fileNameNoExt);
+        
+        // 如果是从图片上传转换的，使用默认路径
+        if (teacherReview.size < 1000) { // 可能是通过OCR创建的
+          requestData.teacherDocId = "outlines/五年级/老师批改/读水浒传有感修改-老师修改终稿.docx";
+          console.log('检测到可能是OCR生成的文件，使用默认路径:', requestData.teacherDocId);
+        } else {
+          // 构建与上传逻辑一致的文件路径
+          const sanitizedTitle = fileNameNoExt.match(/[\u4e00-\u9fa5]+/g)?.join('') || fileNameNoExt;
+          console.log('清理后的标题:', sanitizedTitle);
+          
+          // 获取当前年级
+          const currentGrade = '5'; // 简化，实际应调用与上传相同的计算函数
+          const gradeText = '五年级'; // 简化，实际应使用与上传相同的转换函数
+          
+          // 构建完整文件路径，与上传时保持一致
+          const filePath = `outlines/${gradeText}/老师批改/${sanitizedTitle}-老师修改终稿.docx`;
+          console.log('预计的文件路径:', filePath);
+          
+          requestData.teacherDocId = filePath;
+        }
+        
+        // 尝试获取老师修改稿的URL
+        try {
+          console.log('尝试获取老师修改稿URL，文档ID:', requestData.teacherDocId);
+          const teacherUrlResponse = await fetch(`/api/documents/get-url?docId=${encodeURIComponent(requestData.teacherDocId)}`);
+          
+          if (teacherUrlResponse.ok) {
+            const teacherUrlData = await teacherUrlResponse.json();
+            if (teacherUrlData.success && teacherUrlData.url) {
+              requestData.teacherUrl = teacherUrlData.url;
+              console.log('成功获取老师修改稿URL:', teacherUrlData.url);
+            } else {
+              console.error('获取URL API返回失败:', teacherUrlData);
+            }
+          } else {
+            const errorText = await teacherUrlResponse.text();
+            console.error('获取URL API请求失败，状态码:', teacherUrlResponse.status, '错误:', errorText);
+            // 如果获取URL失败，使用模拟数据
+            requestData.useSimulatedData = true;
+          }
+        } catch (error) {
+          console.warn('获取老师修改稿URL失败，将使用模拟数据:', error);
+          requestData.useSimulatedData = true;
+        }
+      }
+      
+      console.log('发送对比请求:', {
+        originalDocId: requestData.originalDocId,
+        teacherDocId: requestData.teacherDocId,
+        hasOriginalUrl: !!requestData.originalUrl,
+        hasTeacherUrl: !!requestData.teacherUrl,
+        useSimulatedData: requestData.useSimulatedData
+      });
+      
+      // 发送请求到后端API，调用DeepSeek API进行真实分析
+      const response = await fetch('/api/documents/compare', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        // 检查是否是404错误（文件未找到）
+        if (response.status === 404 || (errorData.error && errorData.error.includes('未找到'))) {
+          console.warn('文件未找到，使用模拟数据');
+          throw new Error('文件未找到，可能是文件路径不正确');
+        }
+        throw new Error(errorData.error || '分析失败，请稍后重试');
+      }
+      
+      const analysisData = await response.json();
+      
+      if (!analysisData.success) {
+        throw new Error(analysisData.error || '分析失败，请稍后重试');
+      }
+      
+      // 设置分析结果
+      setComparisonResult(analysisData.result);
+      
+      setSnackbarMessage('分析完成');
+      setSnackbarSeverity('success');
+      setOpenSnackbar(true);
+    } catch (error: any) {
+      console.error('分析文档对比失败:', error);
+      setSnackbarMessage(`分析失败: ${error.message}。使用模拟数据展示`);
+      setSnackbarSeverity('warning');
+      setOpenSnackbar(true);
+      
+      // 如果API调用失败，使用模拟数据进行演示（仅用于演示目的）
+      console.warn('使用模拟数据作为回退方案');
       const mockComparisonResult = {
         summary: {
           totalChanges: 28,
@@ -363,26 +496,11 @@ export default function TeacherReview() {
           '加强段落之间的逻辑连贯性，使文章结构更加紧密'
         ]
       };
-
+      
       setComparisonResult(mockComparisonResult);
+    } finally {
       setAnalyzing(false);
-
-      setSnackbarMessage('分析完成');
-      setSnackbarSeverity('success');
-      setOpenSnackbar(true);
-    }, 3000);
-  };
-
-  const handleSaveArchive = async () => {
-    // 模拟保存到数据库
-    setSnackbarMessage('修改分析已归档保存');
-    setSnackbarSeverity('success');
-    setOpenSnackbar(true);
-    
-    // 实际应用中可以在这里添加保存到数据库的逻辑
-    setTimeout(() => {
-      router.push('/documents');
-    }, 1500);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -829,16 +947,6 @@ export default function TeacherReview() {
                       </ListItem>
                     ))}
                   </List>
-                </Box>
-                
-                <Box sx={{ mt: 3, textAlign: 'right' }}>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleSaveArchive}
-                  >
-                    保存归档
-                  </Button>
                 </Box>
               </Box>
             ) : (

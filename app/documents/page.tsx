@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Paper, Tabs, Tab, Table, TableBody, TableCell, TableContainer, 
          TableHead, TableRow, Chip, IconButton, Button, CircularProgress, Alert, Snackbar,
          Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
-         Tooltip } from '@mui/material';
+         Tooltip, useMediaQuery, useTheme } from '@mui/material';
 import { Visibility as VisibilityIcon, Delete as DeleteIcon, Edit as EditIcon,
          BorderColor as BorderColorIcon, Psychology as PsychologyIcon, 
          School as SchoolIcon, Assignment as AssignmentIcon, Folder as FolderIcon,
@@ -63,6 +63,9 @@ export default function Documents() {
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [documentToPreview, setDocumentToPreview] = useState<any>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // 获取文档列表的函数
   const fetchDocuments = async (type = 'all') => {
@@ -258,9 +261,9 @@ export default function Documents() {
 
   return (
     <Layout>
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
         <div>
-          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
             文档管理中心
           </Typography>
           <Typography variant="subtitle1" color="text.secondary">
@@ -278,7 +281,7 @@ export default function Documents() {
         </Alert>
       )}
 
-      <Paper elevation={0} sx={{ borderRadius: 2 }}>
+      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs 
             value={tabValue} 
@@ -286,35 +289,44 @@ export default function Documents() {
             aria-label="document tabs"
             variant="scrollable"
             scrollButtons="auto"
+            allowScrollButtonsMobile
+            sx={{
+              '.MuiTab-root': {
+                minWidth: { xs: 'auto', sm: 100 },
+                px: { xs: 1, sm: 2 },
+                py: { xs: 0.5, sm: 1 },
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }
+              }
+            }}
           >
             <Tab 
               label="全部文档" 
-              icon={<FolderIcon />} 
+              icon={<FolderIcon fontSize="small" />} 
               iconPosition="start"
             />
             <Tab 
               label="提纲和写作建议" 
-              icon={<AssignmentIcon />} 
+              icon={<AssignmentIcon fontSize="small" />} 
               iconPosition="start"
             />
             <Tab 
               label="作文初稿" 
-              icon={<BorderColorIcon />} 
+              icon={<BorderColorIcon fontSize="small" />} 
               iconPosition="start"
             />
             <Tab 
               label="AI评价" 
-              icon={<PsychologyIcon />} 
+              icon={<PsychologyIcon fontSize="small" />} 
               iconPosition="start"
             />
             <Tab 
               label="AI修改稿" 
-              icon={<PsychologyIcon />} 
+              icon={<PsychologyIcon fontSize="small" />} 
               iconPosition="start"
             />
             <Tab 
               label="老师修改终稿" 
-              icon={<SchoolIcon />} 
+              icon={<SchoolIcon fontSize="small" />} 
               iconPosition="start"
             />
           </Tabs>
@@ -421,22 +433,44 @@ export default function Documents() {
         onClose={handleCloseDeleteDialog}
         aria-labelledby="delete-dialog-title"
         aria-describedby="delete-dialog-description"
+        fullWidth
+        maxWidth="xs"
+        sx={{
+          '.MuiDialog-paper': {
+            m: { xs: 1, sm: 2 },
+            width: { xs: 'calc(100% - 16px)', sm: '400px' }
+          }
+        }}
       >
-        <DialogTitle id="delete-dialog-title">
+        <DialogTitle id="delete-dialog-title" 
+          sx={{ 
+            pb: 1,
+            fontSize: { xs: '1.1rem', sm: '1.25rem' }
+          }}
+        >
           确认删除
         </DialogTitle>
         <DialogContent>
-          <DialogContentText id="delete-dialog-description">
+          <DialogContentText id="delete-dialog-description" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
             您确定要删除文档 "{documentToDelete?.title}" 吗？此操作无法撤销。
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDeleteDialog} disabled={deleting}>取消</Button>
+        <DialogActions sx={{ px: 2, pb: 2 }}>
+          <Button 
+            onClick={handleCloseDeleteDialog} 
+            disabled={deleting}
+            variant={isMobile ? "outlined" : "text"}
+            size={isMobile ? "medium" : "small"}
+          >
+            取消
+          </Button>
           <Button 
             onClick={handleConfirmDelete} 
             color="error" 
             autoFocus
             disabled={deleting}
+            variant={isMobile ? "contained" : "text"}
+            size={isMobile ? "medium" : "small"}
             startIcon={deleting ? <CircularProgress size={20} /> : null}
           >
             {deleting ? '删除中...' : '删除'}
@@ -451,13 +485,33 @@ export default function Documents() {
         aria-labelledby="preview-dialog-title"
         maxWidth="lg"
         fullWidth
+        fullScreen={isMobile}
+        sx={{
+          '.MuiDialog-paper': {
+            m: { xs: 1, sm: 2, md: 3 }
+          }
+        }}
       >
-        <DialogTitle id="preview-dialog-title" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" component="div">
+        <DialogTitle id="preview-dialog-title" sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          p: { xs: 1.5, sm: 2 },
+          fontSize: { xs: '1rem', sm: '1.25rem' }
+        }}>
+          <Typography 
+            variant="h6" 
+            component="div" 
+            noWrap 
+            sx={{ 
+              maxWidth: { xs: '60%', sm: '70%' },
+              fontSize: { xs: '0.9rem', sm: '1.25rem' }
+            }}
+          >
             {documentToPreview?.title}
           </Typography>
           {/* 只在客户端渲染这些按钮 */}
-          {typeof window !== 'undefined' && (
+          {!isMobile && (
             <Box>
               <Tooltip title="在新窗口打开">
                 <IconButton 
@@ -486,13 +540,42 @@ export default function Documents() {
         </DialogTitle>
         <DialogContent sx={{ height: '70vh', padding: 0 }}>
           {previewUrl && typeof window !== 'undefined' && (
-            <iframe 
-              src={previewUrl}
-              style={{ width: '100%', height: '100%', border: 'none' }}
-              title="文档预览"
-            />
+            <Box sx={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <iframe 
+                src={previewUrl}
+                style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+                title="文档预览"
+              />
+            </Box>
           )}
         </DialogContent>
+        {isMobile && (
+          <DialogActions sx={{ justifyContent: 'space-between', p: 1.5 }}>
+            <Button 
+              variant="outlined"
+              onClick={() => documentToPreview && handleDownloadDocument(documentToPreview)}
+              startIcon={<DownloadIcon />}
+            >
+              下载
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={() => documentToPreview && handleOpenInNewWindow(documentToPreview)}
+              startIcon={<OpenInNewIcon />}
+              color="primary"
+            >
+              新窗口打开
+            </Button>
+            <Button 
+              variant="outlined"
+              onClick={handleClosePreviewDialog}
+              startIcon={<CloseIcon />}
+              color="error"
+            >
+              关闭
+            </Button>
+          </DialogActions>
+        )}
       </Dialog>
     </Layout>
   );
@@ -517,6 +600,93 @@ function DocumentTable({
   onPreview = () => {},
   onDownload = () => {}
 }: DocumentTableProps) {
+  // 使用MUI的媒体查询钩子检测小屏幕
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  // 如果是小屏幕设备，使用卡片布局
+  if (isSmallScreen) {
+    return (
+      <Box sx={{ mb: 2 }}>
+        {documents.length > 0 ? (
+          documents.map((doc) => (
+            <Paper 
+              key={doc.id} 
+              elevation={1} 
+              sx={{ 
+                mb: 2, 
+                p: 2, 
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider'
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="subtitle1" fontWeight="bold" noWrap sx={{ maxWidth: '70%' }}>
+                  {doc.title}
+                </Typography>
+                <Chip
+                  icon={getIconByType(doc.type)}
+                  label={getStatusByType(doc.type)}
+                  color={getColorByType(doc.type) as any}
+                  size="small"
+                />
+              </Box>
+              
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  日期: {doc.date}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  年级: {doc.grade}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  大小: {doc.size || '-'}KB
+                </Typography>
+              </Box>
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  startIcon={<VisibilityIcon />} 
+                  onClick={() => onPreview(doc)}
+                  fullWidth
+                >
+                  预览
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  size="small" 
+                  startIcon={<DownloadIcon />} 
+                  onClick={() => onDownload(doc)}
+                  fullWidth
+                >
+                  下载
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  color="error" 
+                  size="small" 
+                  startIcon={<DeleteIcon />} 
+                  onClick={() => onDelete(doc)}
+                  fullWidth
+                >
+                  删除
+                </Button>
+              </Box>
+            </Paper>
+          ))
+        ) : (
+          <Paper sx={{ p: 3, textAlign: 'center' }}>
+            <Typography variant="body1">暂无文档</Typography>
+          </Paper>
+        )}
+      </Box>
+    );
+  }
+
+  // 大屏幕使用表格布局
   return (
     <TableContainer>
       <Table>

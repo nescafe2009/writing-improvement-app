@@ -45,7 +45,8 @@ export async function POST(req: Request) {
     const token = generateToken(user);
     
     // 设置cookie
-    cookies().set({
+    const cookieStore = await cookies();
+    cookieStore.set({
       name: 'auth_token',
       value: token,
       httpOnly: true,

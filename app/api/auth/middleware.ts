@@ -3,8 +3,8 @@ import { cookies } from 'next/headers';
 import { verifyToken } from './utils';
 
 // 获取当前用户名
-export function getCurrentUser(): string | null {
-  const cookieStore = cookies();
+export async function getCurrentUser(): Promise<string | null> {
+  const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;
   
   if (!token) {
@@ -17,7 +17,7 @@ export function getCurrentUser(): string | null {
 
 // 鉴权中间件函数
 export async function withAuth(req: Request, callback: (username: string) => Promise<NextResponse>) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;
   
   if (!token) {

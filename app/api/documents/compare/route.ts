@@ -97,6 +97,8 @@ async function checkAndGetRealPath(docId: string): Promise<string | null> {
         const pathParts = cleanedPath.split('/');
         console.log(`路径分析: ${JSON.stringify(pathParts)}`);
         
+        // 不要在这里尝试提取用户名
+        
         // 生成预签名URL
         try {
           const signedUrl = await getPresignedUrl(cleanedPath, 7200);
@@ -120,6 +122,56 @@ async function checkAndGetRealPath(docId: string): Promise<string | null> {
       `outlines/五年级/作文初稿/${docId}.docx`,
       `outlines/五年级/老师批改/${docId}.docx`
     ];
+    
+    // 尝试从路径中提取用户名（如果有）
+    let username = null;
+    if (docId.includes('/')) {
+      const pathParts = docId.split('/');
+      // 检查路径格式是否类似于 outlines/用户名/...
+      if (pathParts.length > 2 && pathParts[0] === 'outlines') {
+        // 确保用户名不是"五年级"
+        if (pathParts[1] !== '五年级') {
+          username = pathParts[1];
+          console.log(`从路径中提取到用户名: ${username}`);
+          
+          // 添加包含用户名的路径尝试
+          commonPaths.push(
+            `outlines/${username}/五年级/作文初稿/${docId.split('/').pop()}`,
+            `outlines/${username}/五年级/老师批改/${docId.split('/').pop()}`,
+            `outlines/${username}/五年级/作文初稿/${docId.split('/').pop()}.docx`,
+            `outlines/${username}/五年级/老师批改/${docId.split('/').pop()}.docx`
+          );
+        }
+      }
+    }
+    
+    // 如果从teacherDocId参数中没有提取到用户名，则尝试从原始文档路径中提取
+    // 这通常用于处理老师修改稿路径
+    if (!username && docId.includes('老师批改') && !docId.includes('nescafe2009')) {
+      // 查找请求参数中是否有原始文档ID
+      const originalDocId = docId.replace('老师批改', '作文初稿').replace('-老师修改终稿', '-初稿');
+      console.log(`尝试从原始文档路径推断用户名，构造的原始路径: ${originalDocId}`);
+      
+      // 检查原始文档ID是否包含用户名
+      const originalParts = originalDocId.split('/');
+      if (originalParts.length > 2 && originalParts[0] === 'outlines' && originalParts[1] !== '五年级') {
+        username = originalParts[1];
+        console.log(`从原始文档路径中提取到用户名: ${username}`);
+        
+        // 重建老师修改稿路径，包含用户名
+        const fileName = docId.split('/').pop();
+        const correctedPath = `outlines/${username}/五年级/老师批改/${fileName}`;
+        console.log(`重建的老师修改稿路径: ${correctedPath}`);
+        
+        commonPaths.push(correctedPath);
+      }
+    }
+    
+    // 把特定用户名的路径添加到常见路径中
+    commonPaths.push(
+      `outlines/nescafe2009/五年级/老师批改/${docId.split('/').pop()}`,
+      `outlines/nescafe2009/五年级/老师批改/${docId.split('/').pop()}.docx`
+    );
     
     // 添加正确格式的路径尝试
     if (docId.includes('老师修改终稿-老师修改终稿')) {
@@ -375,25 +427,49 @@ function getMockComparisonResult() {
 function correctTeacherDocumentPath(docId: string): string {
   console.log(`检查并修正老师文档路径: "${docId}"`);
   
+  // 如果路径是带有路径分隔符的，需要分别处理路径和文件名
+  if (docId.includes('/')) {
+    const parts = docId.split('/');
+    const fileName = parts.pop() || '';  // 获取文件名
+    const pathPrefix = parts.join('/');  // 获取路径前缀
+    
+    // 对文件名部分应用修正
+    const correctedFileName = correctTeacherDocumentFileName(fileName);
+    
+    // 如果文件名被修正了，记录日志
+    if (fileName !== correctedFileName) {
+      console.log(`文件名已修正，从 "${fileName}" 到 "${correctedFileName}"`);
+    }
+    
+    // 重新组合路径
+    return `${pathPrefix}/${correctedFileName}`;
+  }
+  
+  // 如果只是纯文件名，直接处理
+  return correctTeacherDocumentFileName(docId);
+}
+
+// 为文件名部分单独创建一个修正函数
+function correctTeacherDocumentFileName(fileName: string): string {
   // 检查是否是"xxx老师修改终稿-老师修改终稿.docx"格式
-  if (docId.includes('老师修改终稿-老师修改终稿')) {
+  if (fileName.includes('老师修改终稿-老师修改终稿')) {
     // 将"xxx老师修改终稿-老师修改终稿.docx"转换为"xxx-老师修改终稿.docx"
-    const corrected = docId.replace('老师修改终稿-老师修改终稿', '-老师修改终稿');
+    const corrected = fileName.replace('老师修改终稿-老师修改终稿', '-老师修改终稿');
     console.log(`检测到错误格式1，已修正为: "${corrected}"`);
     return corrected;
   }
   
   // 检查是否有"互联网信息服务备案承诺书老师修改终稿"这样的格式问题
-  if (docId.includes('互联网信息服务备案承诺书老师修改终稿') && !docId.includes('-老师修改终稿')) {
+  if (fileName.includes('互联网信息服务备案承诺书老师修改终稿') && !fileName.includes('-老师修改终稿')) {
     // 将"互联网信息服务备案承诺书老师修改终稿"转换为"互联网信息服务备案承诺书-老师修改终稿"
-    const corrected = docId.replace('互联网信息服务备案承诺书老师修改终稿', '互联网信息服务备案承诺书-老师修改终稿');
+    const corrected = fileName.replace('互联网信息服务备案承诺书老师修改终稿', '互联网信息服务备案承诺书-老师修改终稿');
     console.log(`检测到错误格式2，已修正为: "${corrected}"`);
     return corrected;
   }
   
   // 直接尝试特定的字符串替换 - 针对当前具体问题
-  if (docId.includes('互联网信息服务备案承诺书老师修改终稿')) {
-    const corrected = docId.replace('互联网信息服务备案承诺书老师修改终稿', '互联网信息服务备案承诺书-老师修改终稿');
+  if (fileName.includes('互联网信息服务备案承诺书老师修改终稿')) {
+    const corrected = fileName.replace('互联网信息服务备案承诺书老师修改终稿', '互联网信息服务备案承诺书-老师修改终稿');
     console.log(`检测到具体错误字符串，已修正为: "${corrected}"`);
     return corrected;
   }
@@ -406,16 +482,16 @@ function correctTeacherDocumentPath(docId: string): string {
     { from: /老师修改[\s-]*老师修改/, to: '-老师修改' }
   ];
   
-  let modifiedDocId = docId;
+  let modifiedFileName = fileName;
   for (const pattern of patterns) {
-    if (pattern.from.test(modifiedDocId)) {
-      const before = modifiedDocId;
-      modifiedDocId = modifiedDocId.replace(pattern.from, pattern.to);
-      console.log(`应用通用修正规则，从 "${before}" 到 "${modifiedDocId}"`);
+    if (pattern.from.test(modifiedFileName)) {
+      const before = modifiedFileName;
+      modifiedFileName = modifiedFileName.replace(pattern.from, pattern.to);
+      console.log(`应用通用修正规则，从 "${before}" 到 "${modifiedFileName}"`);
     }
   }
   
-  return modifiedDocId;
+  return modifiedFileName;
 }
 
 export async function POST(req: Request) {
@@ -440,6 +516,16 @@ export async function POST(req: Request) {
         success: true, 
         result: getMockComparisonResult() 
       });
+    }
+    
+    // 尝试从原始文档路径中提取用户名
+    let username = null;
+    if (requestData.originalDocId && requestData.originalDocId.includes('/')) {
+      const originalParts = requestData.originalDocId.split('/');
+      if (originalParts.length > 2 && originalParts[0] === 'outlines' && originalParts[1] !== '五年级') {
+        username = originalParts[1];
+        console.log(`从原始文档路径中提取到用户名: ${username}`);
+      }
     }
     
     // 尝试从COS获取文档内容
@@ -509,6 +595,19 @@ export async function POST(req: Request) {
     // 先修正老师文档ID格式
     if (requestData.teacherDocId) {
       requestData.teacherDocId = correctTeacherDocumentPath(requestData.teacherDocId);
+      
+      // 如果老师文档ID不包含用户名，但我们从原始文档中获取了用户名，则添加用户名
+      if (username && requestData.teacherDocId.includes('/') && !requestData.teacherDocId.includes(`/${username}/`)) {
+        // 检查老师文档路径是否符合 outlines/五年级/老师批改/xxx 格式
+        const teacherParts = requestData.teacherDocId.split('/');
+        if (teacherParts.length >= 4 && teacherParts[0] === 'outlines' && teacherParts[1] === '五年级') {
+          // 替换为包含用户名的路径
+          const fileName = teacherParts[teacherParts.length - 1];
+          const correctedPath = `outlines/${username}/五年级/老师批改/${fileName}`;
+          console.log(`修正老师文档路径，添加用户名: 从 "${requestData.teacherDocId}" 到 "${correctedPath}"`);
+          requestData.teacherDocId = correctedPath;
+        }
+      }
     }
     
     // 先尝试通过直接访问COS获取文件

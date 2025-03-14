@@ -23,7 +23,8 @@ import {
   ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
 import Layout from '../components/layout/Layout';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Cookies from 'js-cookie';
 
 interface FileWithPreview extends File {
   preview?: string;
@@ -64,6 +65,25 @@ export default function TeacherReview() {
 
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
+  };
+
+  const getCurrentUsername = () => {
+    const token = Cookies.get('auth_token');
+    if (!token) return null;
+    
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      const payload = JSON.parse(jsonPayload);
+      return payload.sub || null;
+    } catch (e) {
+      console.error('解析token失败:', e);
+      return null;
+    }
   };
 
   const handleOriginalUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -320,6 +340,10 @@ export default function TeacherReview() {
     setOpenSnackbar(true);
     
     try {
+      // 获取当前用户名
+      const username = getCurrentUsername();
+      console.log('当前用户名:', username);
+      
       // 请求数据对象
       const requestData: any = {
         originalDocId: '',
@@ -361,7 +385,9 @@ export default function TeacherReview() {
         
         // 如果是从图片上传转换的，使用默认路径
         if (teacherReview.size < 1000) { // 可能是通过OCR创建的
-          requestData.teacherDocId = "outlines/五年级/老师批改/读水浒传有感修改-老师修改终稿.docx";
+          requestData.teacherDocId = username 
+            ? `outlines/${username}/五年级/老师批改/读水浒传有感修改-老师修改终稿.docx`
+            : `outlines/五年级/老师批改/读水浒传有感修改-老师修改终稿.docx`;
           console.log('检测到可能是OCR生成的文件，使用默认路径:', requestData.teacherDocId);
         } else {
           // 构建与上传逻辑一致的文件路径
@@ -372,8 +398,10 @@ export default function TeacherReview() {
           const currentGrade = '5'; // 简化，实际应调用与上传相同的计算函数
           const gradeText = '五年级'; // 简化，实际应使用与上传相同的转换函数
           
-          // 构建完整文件路径，与上传时保持一致
-          const filePath = `outlines/${gradeText}/老师批改/${sanitizedTitle}-老师修改终稿.docx`;
+          // 构建完整文件路径，与上传时保持一致，添加用户名
+          const filePath = username 
+            ? `outlines/${username}/${gradeText}/老师批改/${sanitizedTitle}-老师修改终稿.docx`
+            : `outlines/${gradeText}/老师批改/${sanitizedTitle}-老师修改终稿.docx`;
           console.log('预计的文件路径:', filePath);
           
           requestData.teacherDocId = filePath;

@@ -29,12 +29,33 @@ export default function HomePage() {
   const [userData, setUserData] = useState<any>(null);
   const [error, setError] = useState('');
   
-  // 模拟用户数据统计
-  const userStats = {
-    completedEssays: 12,
-    reviewedEssays: 8,
-    averageScore: 85,
-    improvementRate: 15,
+  // 用户数据统计状态
+  const [userStats, setUserStats] = useState({
+    completedEssays: 0,
+    reviewedEssays: 0,
+    averageScore: 0,
+    improvementRate: 0,
+    drafts: 0,
+    outlines: 0,
+    aiReviews: 0,
+    aiImproved: 0,
+    teacherReviewed: 0,
+    totalFiles: 0,
+  });
+  
+  // 获取用户统计数据
+  const fetchUserStats = async () => {
+    try {
+      const response = await fetch('/api/user/stats');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setUserStats(data.stats);
+        }
+      }
+    } catch (error) {
+      console.error('获取用户统计数据失败:', error);
+    }
   };
   
   // 检查用户登录状态
@@ -47,6 +68,8 @@ export default function HomePage() {
           if (data.success) {
             setIsLoggedIn(true);
             setUserData(data.user);
+            // 获取用户统计数据
+            fetchUserStats();
           } else {
             setIsLoggedIn(false);
             // 未登录时不跳转，让用户可以看到主页
@@ -63,7 +86,7 @@ export default function HomePage() {
     }
     
     checkAuth();
-  }, [router]);
+  }, []);
   
   return (
     <Layout>
@@ -168,6 +191,75 @@ export default function HomePage() {
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       进步率
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+            
+            {/* 添加详细文档统计 */}
+            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+              文档详细分类
+            </Typography>
+            <Box sx={{ mx: -1 }}>
+              <Grid container spacing={0}>
+                <Grid item xs={4} sx={{ p: 1 }}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="body1" color="primary" sx={{ fontWeight: 'bold' }}>
+                      {userStats.outlines}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      作文提纲
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={4} sx={{ p: 1 }}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="body1" color="primary" sx={{ fontWeight: 'bold' }}>
+                      {userStats.drafts}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      作文初稿
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={4} sx={{ p: 1 }}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="body1" color="primary" sx={{ fontWeight: 'bold' }}>
+                      {userStats.aiReviews}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      AI评价
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={4} sx={{ p: 1 }}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="body1" color="primary" sx={{ fontWeight: 'bold' }}>
+                      {userStats.aiImproved}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      AI修改
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={4} sx={{ p: 1 }}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="body1" color="primary" sx={{ fontWeight: 'bold' }}>
+                      {userStats.teacherReviewed}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      老师批改
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={4} sx={{ p: 1 }}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="body1" color="primary" sx={{ fontWeight: 'bold' }}>
+                      {userStats.totalFiles}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      总文档数
                     </Typography>
                   </Box>
                 </Grid>

@@ -47,8 +47,8 @@ async function checkAndGetRealPath(docId: string): Promise<string | null> {
   
   try {
     // 检查文件是否存在
-    const exists = await checkFileExists(docId);
-    if (exists) {
+  const exists = await checkFileExists(docId);
+  if (exists) {
       console.log(`文件在COS中存在，直接使用路径: ${docId}`);
       try {
         const signedUrl = await getPresignedUrl(docId, 7200); // 延长URL有效期到2小时
@@ -133,8 +133,8 @@ async function checkAndGetRealPath(docId: string): Promise<string | null> {
     console.log(`尝试以下常见路径:`);
     for (const path of commonPaths) {
       console.log(`- 检查路径: ${path}`);
-      const pathExists = await checkFileExists(path);
-      if (pathExists) {
+        const pathExists = await checkFileExists(path);
+        if (pathExists) {
         console.log(`在路径 ${path} 找到文件`);
         try {
           const signedUrl = await getPresignedUrl(path, 7200);
@@ -325,49 +325,49 @@ async function getDocumentContent(url: string, fileDescription: string = "文档
 // 添加模拟对比结果函数
 function getMockComparisonResult() {
   return {
-    summary: {
+      summary: {
       totalChanges: 28,
       majorChanges: 7,
       minorChanges: 21,
       improvementAreas: ['语法', '词汇选择', '段落组织', '论证逻辑']
-    },
-    changes: [
-      {
-        type: 'major',
-        original: '这是一个很好的观点，但是缺乏支持论据。',
-        revised: '这是一个很好的观点，但需要具体事例和数据来支持。我建议加入近期的研究数据和专家观点，使论证更有说服力。',
-        category: '论证深度',
-        analysis: '老师强调了论证需要具体事例和数据支持，并提供了明确的改进建议。'
       },
-      {
-        type: 'minor',
-        original: '我认为这个问题很重要。',
-        revised: '由此可见，这个问题具有重大意义。',
-        category: '表达方式',
-        analysis: '修改使表达更加正式，避免了第一人称的使用，符合学术写作规范。'
-      },
-      {
-        type: 'major',
-        original: '最后，这个问题需要解决。',
-        revised: '综上所述，针对这一问题，我们应当从政策制定、教育引导及社会参与三个层面共同发力，才能取得实质性进展。',
-        category: '结论深度',
-        analysis: '老师大幅加强了结论部分，从单一笼统的表述扩展为多层次、有条理的总结，并提出了具体的解决方向。'
-      },
-      {
-        type: 'minor',
-        original: '人们都知道环境保护很重要。',
-        revised: '环境保护的重要性已成为全球共识。',
-        category: '措辞精确性',
-        analysis: '避免了"人们都知道"这类模糊表述，使论述更加准确有力。'
-      }
-    ],
-    recommendations: [
-      '注意论证时需要提供充分的事实依据和数据支持',
-      '避免使用过于口语化的表达，保持学术写作的正式性',
-      '结论部分需要全面概括文章要点，并提出有深度的见解',
-      '注意措辞的精确性，避免模糊空泛的表述',
-      '加强段落之间的逻辑连贯性，使文章结构更加紧密'
-    ]
+      changes: [
+        {
+          type: 'major',
+          original: '这是一个很好的观点，但是缺乏支持论据。',
+          revised: '这是一个很好的观点，但需要具体事例和数据来支持。我建议加入近期的研究数据和专家观点，使论证更有说服力。',
+          category: '论证深度',
+          analysis: '老师强调了论证需要具体事例和数据支持，并提供了明确的改进建议。'
+        },
+        {
+          type: 'minor',
+          original: '我认为这个问题很重要。',
+          revised: '由此可见，这个问题具有重大意义。',
+          category: '表达方式',
+          analysis: '修改使表达更加正式，避免了第一人称的使用，符合学术写作规范。'
+        },
+        {
+          type: 'major',
+          original: '最后，这个问题需要解决。',
+          revised: '综上所述，针对这一问题，我们应当从政策制定、教育引导及社会参与三个层面共同发力，才能取得实质性进展。',
+          category: '结论深度',
+          analysis: '老师大幅加强了结论部分，从单一笼统的表述扩展为多层次、有条理的总结，并提出了具体的解决方向。'
+        },
+        {
+          type: 'minor',
+          original: '人们都知道环境保护很重要。',
+          revised: '环境保护的重要性已成为全球共识。',
+          category: '措辞精确性',
+          analysis: '避免了"人们都知道"这类模糊表述，使论述更加准确有力。'
+        }
+      ],
+      recommendations: [
+        '注意论证时需要提供充分的事实依据和数据支持',
+        '避免使用过于口语化的表达，保持学术写作的正式性',
+        '结论部分需要全面概括文章要点，并提出有深度的见解',
+        '注意措辞的精确性，避免模糊空泛的表述',
+        '加强段落之间的逻辑连贯性，使文章结构更加紧密'
+      ]
   };
 }
 
@@ -631,8 +631,8 @@ export async function POST(req: Request) {
             teacherText = teacherBuffer.toString('utf-8').replace(/[^\x20-\x7E\u4E00-\u9FFF]/g, '');
           }
           
-        } catch (error) {
-          console.warn('无法从二进制内容中提取文本:', error);
+      } catch (error) {
+        console.warn('无法从二进制内容中提取文本:', error);
           // 使用默认文本
           if (!originalText) originalText = "无法解析文档内容，请确保上传有效的文本文档";
           if (!teacherText) teacherText = "无法解析文档内容，请确保上传有效的文本文档";
@@ -779,7 +779,7 @@ ${teacherText}
             // 情况4: 最后尝试提取任何JSON格式的内容
             else {
               const jsonMatch = content.match(/\{[\s\S]*\}/);
-              if (jsonMatch) {
+        if (jsonMatch) {
                 jsonContent = jsonMatch[0];
               }
             }
@@ -822,7 +822,7 @@ ${teacherText}
         }
         
         // 格式化结果，确保字段名称一致性
-        const formattedResult = {
+      const formattedResult = {
           summary: analysisResult.summary || {
             totalChanges: 0,
             majorChanges: 0,
@@ -830,12 +830,12 @@ ${teacherText}
             improvementAreas: []
           },
           changes: analysisResult.changes || [],
-          recommendations: analysisResult.recommendations || []
-        };
-        
+        recommendations: analysisResult.recommendations || []
+      };
+      
         // 返回成功结果
-        return NextResponse.json({
-          success: true,
+      return NextResponse.json({
+        success: true,
           result: formattedResult  // 使用result而不是analysis作为字段名，确保与前端期望一致
         });
       } catch (error) {

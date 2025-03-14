@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { AppBar, Toolbar, Typography, Box, IconButton, Avatar, Drawer, List, ListItem, ListItemIcon, ListItemText, useMediaQuery, useTheme } from '@mui/material';
+import { AppBar, Toolbar, Typography, Box, IconButton, Avatar, Drawer, List, ListItem, ListItemIcon, ListItemText, useMediaQuery, useTheme, Button } from '@mui/material';
 import { Home as HomeIcon, Edit as EditIcon, Assistant as AssistantIcon, 
-         FolderOpen as FolderIcon, History as HistoryIcon, Menu as MenuIcon } from '@mui/icons-material';
+         FolderOpen as FolderIcon, History as HistoryIcon, Menu as MenuIcon,
+         BugReport as BugIcon } from '@mui/icons-material';
 
 const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -15,6 +16,7 @@ const Navbar: React.FC = () => {
     { label: 'AI作文批改', icon: <EditIcon />, href: '/review' },
     { label: '文档管理', icon: <FolderIcon />, href: '/documents' },
     { label: '历史轨迹', icon: <HistoryIcon />, href: '/history' },
+    { label: '调试', icon: <BugIcon />, href: '/debug' },
   ];
 
   const toggleMobileMenu = () => {
@@ -66,7 +68,7 @@ const Navbar: React.FC = () => {
                 <List>
                   {menuItems.map((item) => (
                     <Link key={item.href} href={item.href} passHref style={{ textDecoration: 'none', color: 'inherit' }}>
-                      <ListItem button onClick={toggleMobileMenu} sx={{ py: 1.5 }}>
+                      <ListItem onClick={toggleMobileMenu} sx={{ py: 1.5 }}>
                         <ListItemIcon sx={{ minWidth: 40 }}>
                           {item.icon}
                         </ListItemIcon>

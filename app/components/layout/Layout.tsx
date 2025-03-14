@@ -39,11 +39,61 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
+  
+  // 添加用户状态
+  const [userData, setUserData] = useState({
+    name: '王小明',
+    grade: '三年级学生',
+    avatar: '/images/default-avatar.png'
+  });
 
   useEffect(() => {
     // 在客户端渲染时更新状态，避免hydration不匹配
     setIsMobile(isMobileMQ);
-  }, [isMobileMQ]);
+    
+    // 获取用户信息
+    async function fetchUserProfile() {
+      try {
+        const response = await fetch('/api/user/profile');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.user) {
+            setUserData({
+              name: data.user.name || '王小明',
+              grade: data.user.grade || '三年级学生',
+              avatar: data.user.avatar || '/images/default-avatar.png'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error);
+      }
+    }
+    
+    fetchUserProfile();
+    
+    // 路由变化时检查是否需要刷新用户信息
+    if (pathname === '/') {
+      fetchUserProfile();
+    }
+    
+    // 定期检查本地存储是否有用户信息更新标记
+    const checkInterval = setInterval(() => {
+      const lastUpdate = localStorage.getItem('userProfileUpdated');
+      if (lastUpdate) {
+        const currentTimestamp = parseInt(lastUpdate);
+        // 如果上次更新在10秒内，则重新获取用户信息
+        if (Date.now() - currentTimestamp < 10000) {
+          localStorage.removeItem('userProfileUpdated'); // 清除标记
+          fetchUserProfile();
+        }
+      }
+    }, 1000); // 每秒检查一次
+    
+    return () => {
+      clearInterval(checkInterval);
+    };
+  }, [isMobileMQ, pathname]);
 
   const menuItems = [
     { text: '我的主页', icon: <DashboardIcon />, href: '/' },
@@ -70,8 +120,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         }}
       >
         <Avatar 
-          src="/avatar.png" 
-          alt="用户头像" 
+          src={userData.avatar} 
+          alt={userData.name} 
           sx={{ 
             width: isMobile ? 60 : 70, 
             height: isMobile ? 60 : 70, 
@@ -80,10 +130,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           }} 
         />
         <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          王小明
+          {userData.name}
         </Typography>
         <Typography variant="body2">
-          三年级学生
+          {userData.grade}
         </Typography>
       </Box>
       <Divider />
@@ -126,12 +176,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <Divider />
       <List>
         <ListItem disablePadding>
-          <ListItemButton sx={{ py: isMobile ? 1 : 1.5, px: isMobile ? 2 : 3 }}>
-            <ListItemIcon sx={{ minWidth: isMobile ? 40 : 56 }}>
-              <AccountCircleIcon />
-            </ListItemIcon>
-            <ListItemText primary="个人设置" />
-          </ListItemButton>
+          <Link href="/settings" style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}>
+            <ListItemButton sx={{ py: isMobile ? 1 : 1.5, px: isMobile ? 2 : 3 }}>
+              <ListItemIcon sx={{ minWidth: isMobile ? 40 : 56 }}>
+                <AccountCircleIcon />
+              </ListItemIcon>
+              <ListItemText primary="个人设置" />
+            </ListItemButton>
+          </Link>
         </ListItem>
         <ListItem disablePadding>
           <ListItemButton sx={{ py: isMobile ? 1 : 1.5, px: isMobile ? 2 : 3 }}>
@@ -178,7 +230,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             >
               小赵作文助手
             </Typography>
-            <Avatar src="/avatar.png" alt="用户头像" sx={{ display: { xs: 'flex', md: 'none' }, width: 34, height: 34 }} />
           </Toolbar>
         </AppBar>
         

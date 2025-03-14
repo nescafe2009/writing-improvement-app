@@ -2,16 +2,17 @@ import React, { useState, useEffect, ReactNode } from 'react';
 import {
   Box, AppBar, Toolbar, IconButton, Typography, Drawer, List,
   ListItem, ListItemButton, ListItemIcon, ListItemText, Container, useTheme,
-  CssBaseline, Divider, useMediaQuery, Avatar
+  CssBaseline, Divider, useMediaQuery, Avatar, Dialog, DialogTitle, DialogContent,
+  DialogContentText, DialogActions, Button, Snackbar, Alert, CircularProgress
 } from '@mui/material';
 import {
   Menu as MenuIcon, Dashboard as DashboardIcon, Create as CreateIcon,
   RateReview as RateReviewIcon, Compare as CompareIcon,
   Folder as FolderIcon, AccountCircle as AccountCircleIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon, Login as LoginIcon
 } from '@mui/icons-material';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 // 添加 ClientOnly 组件，用于仅在客户端渲染时显示内容
 function ClientOnly({ children }: { children: ReactNode }) {
@@ -34,6 +35,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const theme = useTheme();
+  const router = useRouter();
   // 默认为非移动端布局，避免服务端/客户端不匹配
   const isMobileMQ = useMediaQuery(theme.breakpoints.down('md'), { noSsr: true, defaultMatches: false });
   const [isMobile, setIsMobile] = useState(false);
@@ -42,10 +44,17 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   
   // 添加用户状态
   const [userData, setUserData] = useState({
-    name: '王小明',
-    grade: '三年级学生',
+    name: '访客',
+    grade: '未登录',
     avatar: '/images/default-avatar.png'
   });
+  
+  // 添加登录状态
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
   useEffect(() => {
     // 在客户端渲染时更新状态，避免hydration不匹配
@@ -53,20 +62,35 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     
     // 获取用户信息
     async function fetchUserProfile() {
+      setIsLoading(true);
       try {
-        const response = await fetch('/api/user/profile');
+        const response = await fetch('/api/auth/user');
+        
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.user) {
             setUserData({
-              name: data.user.name || '王小明',
-              grade: data.user.grade || '三年级学生',
+              name: data.user.name || '用户',
+              grade: data.user.grade || '',
               avatar: data.user.avatar || '/images/default-avatar.png'
             });
+            setIsLoggedIn(true);
+          } else {
+            setIsLoggedIn(false);
+            setUserData({
+              name: '访客',
+              grade: '未登录',
+              avatar: '/images/default-avatar.png'
+            });
           }
+        } else {
+          setIsLoggedIn(false);
         }
       } catch (error) {
         console.error('获取用户信息失败:', error);
+        setIsLoggedIn(false);
+      } finally {
+        setIsLoading(false);
       }
     }
     
@@ -119,29 +143,35 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           color: 'white',
         }}
       >
-        <Avatar 
-          src={userData.avatar} 
-          alt={userData.name} 
-          sx={{ 
-            width: isMobile ? 60 : 70, 
-            height: isMobile ? 60 : 70, 
-            mb: 1,
-            border: '2px solid white' 
-          }} 
-        />
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          {userData.name}
-        </Typography>
-        <Typography variant="body2">
-          {userData.grade}
-        </Typography>
+        {isLoading ? (
+          <CircularProgress size={60} sx={{ color: 'white', my: 2 }} />
+        ) : (
+          <>
+            <Avatar 
+              src={userData.avatar} 
+              alt={userData.name} 
+              sx={{ 
+                width: isMobile ? 60 : 70, 
+                height: isMobile ? 60 : 70, 
+                mb: 1,
+                border: '2px solid white' 
+              }} 
+            />
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              {userData.name}
+            </Typography>
+            <Typography variant="body2">
+              {userData.grade}
+            </Typography>
+          </>
+        )}
       </Box>
       <Divider />
       <List sx={{ mt: isMobile ? 1 : 2 }}>
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
-            <Link href={item.href} key={item.text} style={{ textDecoration: 'none', color: 'inherit' }}>
+            <Link href={isLoggedIn ? item.href : '/login'} key={item.text} style={{ textDecoration: 'none', color: 'inherit' }}>
               <ListItem disablePadding>
                 <ListItemButton
                   sx={{ 
@@ -175,27 +205,80 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </List>
       <Divider />
       <List>
-        <ListItem disablePadding>
-          <Link href="/settings" style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}>
-            <ListItemButton sx={{ py: isMobile ? 1 : 1.5, px: isMobile ? 2 : 3 }}>
-              <ListItemIcon sx={{ minWidth: isMobile ? 40 : 56 }}>
-                <AccountCircleIcon />
-              </ListItemIcon>
-              <ListItemText primary="个人设置" />
-            </ListItemButton>
-          </Link>
-        </ListItem>
-        <ListItem disablePadding>
-          <ListItemButton sx={{ py: isMobile ? 1 : 1.5, px: isMobile ? 2 : 3 }}>
-            <ListItemIcon sx={{ minWidth: isMobile ? 40 : 56 }}>
-              <LogoutIcon />
-            </ListItemIcon>
-            <ListItemText primary="退出登录" />
-          </ListItemButton>
-        </ListItem>
+        {isLoggedIn ? (
+          <>
+            <ListItem disablePadding>
+              <Link href="/settings" style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}>
+                <ListItemButton sx={{ py: isMobile ? 1 : 1.5, px: isMobile ? 2 : 3 }}>
+                  <ListItemIcon sx={{ minWidth: isMobile ? 40 : 56 }}>
+                    <AccountCircleIcon />
+                  </ListItemIcon>
+                  <ListItemText primary="个人设置" />
+                </ListItemButton>
+              </Link>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton 
+                sx={{ py: isMobile ? 1 : 1.5, px: isMobile ? 2 : 3 }}
+                onClick={() => setIsLogoutDialogOpen(true)}
+              >
+                <ListItemIcon sx={{ minWidth: isMobile ? 40 : 56 }}>
+                  <LogoutIcon />
+                </ListItemIcon>
+                <ListItemText primary="退出登录" />
+              </ListItemButton>
+            </ListItem>
+          </>
+        ) : (
+          <ListItem disablePadding>
+            <Link href="/login" style={{ textDecoration: 'none', color: 'inherit', width: '100%' }}>
+              <ListItemButton sx={{ py: isMobile ? 1 : 1.5, px: isMobile ? 2 : 3 }}>
+                <ListItemIcon sx={{ minWidth: isMobile ? 40 : 56 }}>
+                  <LoginIcon />
+                </ListItemIcon>
+                <ListItemText primary="登录/注册" />
+              </ListItemButton>
+            </Link>
+          </ListItem>
+        )}
       </List>
     </>
   );
+
+  // 处理登出功能
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        setIsLoggedIn(false);
+        setUserData({
+          name: '访客',
+          grade: '未登录',
+          avatar: '/images/default-avatar.png'
+        });
+        setSnackbarMessage('已成功退出登录');
+        setSnackbarOpen(true);
+        
+        // 关闭登出确认对话框
+        setIsLogoutDialogOpen(false);
+        
+        // 重定向到登录页面
+        setTimeout(() => {
+          router.push('/login');
+        }, 1000);
+      } else {
+        throw new Error('退出登录失败');
+      }
+    } catch (error) {
+      console.error('退出登录失败:', error);
+      setSnackbarMessage('退出登录失败，请稍后重试');
+      setSnackbarOpen(true);
+      setIsLogoutDialogOpen(false);
+    }
+  };
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -266,6 +349,43 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         >
           {drawerContent}
         </Drawer>
+        
+        {/* 登出确认对话框 */}
+        <Dialog
+          open={isLogoutDialogOpen}
+          onClose={() => setIsLogoutDialogOpen(false)}
+        >
+          <DialogTitle>确认退出登录</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              您确定要退出登录吗？退出后需要重新登录才能使用全部功能。
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsLogoutDialogOpen(false)} color="primary">
+              取消
+            </Button>
+            <Button onClick={handleLogout} color="primary" autoFocus>
+              确认退出
+            </Button>
+          </DialogActions>
+        </Dialog>
+        
+        {/* 消息通知 */}
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={5000}
+          onClose={() => setSnackbarOpen(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert
+            onClose={() => setSnackbarOpen(false)}
+            severity="success"
+            sx={{ width: '100%' }}
+          >
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
       </ClientOnly>
       
       <Box
@@ -288,7 +408,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             overflowX: 'hidden'
           }}
         >
-          {children}
+          {isLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            children
+          )}
         </Container>
       </Box>
     </Box>

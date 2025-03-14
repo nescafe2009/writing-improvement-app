@@ -1,190 +1,307 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Box, Grid, Typography, Paper, useMediaQuery, useTheme } from '@mui/material';
-import { Assignment as AssignmentIcon, Lightbulb as LightbulbIcon, 
-         RateReview as RateReviewIcon, Folder as FolderIcon, 
-         Compare as CompareIcon } from '@mui/icons-material';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Layout from './components/layout/Layout';
-import Link from 'next/link';
+import {
+  Box,
+  Typography,
+  Grid,
+  Paper,
+  Button,
+  Card,
+  CardContent,
+  CardActionArea,
+  Skeleton,
+  Alert
+} from '@mui/material';
+import {
+  Create as CreateIcon,
+  RateReview as RateReviewIcon,
+  Folder as FolderIcon,
+  School as SchoolIcon
+} from '@mui/icons-material';
 
-// 添加 ClientOnly 组件，用于仅在客户端渲染时显示内容
-function ClientOnly({ children }: { children: React.ReactNode }) {
-  const [hasMounted, setHasMounted] = useState(false);
+export default function HomePage() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
+  const [error, setError] = useState('');
   
-  useEffect(() => {
-    setHasMounted(true);
-  }, []);
-  
-  if (!hasMounted) {
-    return null;
-  }
-  
-  return <>{children}</>;
-}
-
-export default function Home() {
-  const theme = useTheme();
-  // 默认为非移动端布局，避免服务端/客户端不匹配
-  const isMobile = useMediaQuery('(max-width:600px)', { noSsr: true, defaultMatches: false });
-  const [isMobileView, setIsMobileView] = useState(false);
-  
-  useEffect(() => {
-    // 在客户端渲染时更新状态
-    setIsMobileView(isMobile);
-  }, [isMobile]);
-  
-  // 模拟数据
-  const stats = {
+  // 模拟用户数据统计
+  const userStats = {
     completedEssays: 12,
     reviewedEssays: 8,
     averageScore: 85,
     improvementRate: 15,
   };
-
-  const quickLinks = [
-    {
-      title: '新建作文',
-      description: '开始新作文并获取AI写作建议',
-      icon: <AssignmentIcon fontSize="medium" color="primary" />,
-      href: '/new-essay',
-    },
-    {
-      title: 'AI作文批改',
-      description: '实时评价和修改建议',
-      icon: <RateReviewIcon fontSize="medium" color="primary" />,
-      href: '/review',
-    },
-    {
-      title: '老师修改',
-      description: '上传老师批改并分析对比',
-      icon: <CompareIcon fontSize="medium" color="primary" />,
-      href: '/teacher-review',
-    },
-    {
-      title: '作文管理',
-      description: '查看和管理您的作文',
-      icon: <FolderIcon fontSize="medium" color="primary" />,
-      href: '/documents',
-    },
-  ];
-
+  
+  // 检查用户登录状态
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const response = await fetch('/api/auth/user');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setIsLoggedIn(true);
+            setUserData(data.user);
+          } else {
+            setIsLoggedIn(false);
+            // 未登录时不跳转，让用户可以看到主页
+          }
+        } else {
+          setIsLoggedIn(false);
+        }
+      } catch (error) {
+        console.error('获取用户状态失败:', error);
+        setError('获取用户状态失败');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    checkAuth();
+  }, [router]);
+  
   return (
     <Layout>
-      <Box sx={{ mb: { xs: 3, md: 6 } }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-          欢迎回来，小作文家！
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          继续提升你的写作能力，探索更多精彩内容。
-        </Typography>
-      </Box>
-
-      {/* 数据统计卡片 */}
-      <Paper elevation={0} sx={{ 
-        p: { xs: 2, md: 3 }, 
-        mb: { xs: 3, md: 6 }, 
-        borderRadius: 2, 
-        bgcolor: '#f5f5f5',
-        width: '100%',
-        boxSizing: 'border-box'
-      }}>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-          学习数据看板
-        </Typography>
-        <Box sx={{ mx: -1 }}>
-          <Grid container spacing={0}>
-            <Grid item xs={6} md={3} sx={{ p: 1 }}>
-              <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
-                <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
-                  {stats.completedEssays}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  完成作文数
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3} sx={{ p: 1 }}>
-              <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
-                <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
-                  {stats.reviewedEssays}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  批改作文数
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3} sx={{ p: 1 }}>
-              <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
-                <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
-                  {stats.averageScore}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  平均分数
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={6} md={3} sx={{ p: 1 }}>
-              <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
-                <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
-                  {stats.improvementRate}%
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  进步率
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
+      <Box sx={{ mb: 6 }}>
+        {/* 欢迎信息 */}
+        <Box sx={{ mb: 4 }}>
+          <Typography 
+            variant="h4" 
+            component="h1" 
+            gutterBottom 
+            sx={{ 
+              fontWeight: 'bold',
+              fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem' }
+            }}
+          >
+            {isLoggedIn 
+              ? `欢迎回来，${userData?.name || '同学'}！` 
+              : '欢迎使用小赵作文助手'}
+          </Typography>
+          
+          <Typography 
+            variant="body1" 
+            color="text.secondary"
+            sx={{ mb: 3 }}
+          >
+            {isLoggedIn 
+              ? '继续您的写作之旅，或探索我们的功能来提高您的写作技巧。' 
+              : '小赵作文助手帮助学生改进写作技巧，让作文更出色。请登录以使用全部功能。'}
+          </Typography>
+          
+          {!isLoggedIn && (
+            <Box sx={{ mb: 3 }}>
+              <Button 
+                variant="contained" 
+                color="primary"
+                sx={{ mr: 2, px: 3, py: 1 }}
+                onClick={() => router.push('/login')}
+              >
+                登录
+              </Button>
+              <Button 
+                variant="outlined" 
+                color="primary"
+                sx={{ px: 3, py: 1 }}
+                onClick={() => router.push('/register')}
+              >
+                注册
+              </Button>
+            </Box>
+          )}
         </Box>
-      </Paper>
-
-      {/* 快速入口 */}
-      <Typography variant="h6" sx={{ mb: { xs: 1.5, md: 2 }, fontWeight: 'bold' }}>
-        快速入口
-      </Typography>
-      <Box sx={{ width: '100%', mx: -1 }}>
-        <Grid container spacing={0}>
-          {quickLinks.map((link, index) => (
-            <Grid item xs={6} md={3} key={index} sx={{ p: 1 }}>
-              <Link href={link.href} style={{ textDecoration: 'none' }}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: { xs: 1.5, md: 3 },
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    borderRadius: 2,
-                    transition: 'all 0.3s',
-                    '&:hover': {
-                      transform: { xs: 'translateY(-3px)', md: 'translateY(-5px)' },
-                      boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-                    },
-                  }}
-                >
-                  <ClientOnly>
-                    {link.icon}
-                  </ClientOnly>
-                  <Typography variant="subtitle1" sx={{ 
-                    mt: { xs: 1, md: 2 }, 
-                    fontWeight: 'bold', 
-                    textAlign: 'center',
-                    fontSize: { xs: '0.95rem', md: '1.25rem' }
-                  }}>
-                    {link.title}
+        
+        {/* 用户统计数据卡片 - 仅在登录后显示 */}
+        {isLoggedIn && (
+          <Paper elevation={0} sx={{ 
+            p: { xs: 2, md: 3 }, 
+            mb: { xs: 3, md: 5 }, 
+            borderRadius: 2, 
+            bgcolor: '#f5f5f5',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+              学习数据看板
+            </Typography>
+            <Box sx={{ mx: -1 }}>
+              <Grid container spacing={0}>
+                <Grid item xs={6} md={3} sx={{ p: 1 }}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
+                      {userStats.completedEssays}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      完成作文数
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} md={3} sx={{ p: 1 }}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
+                      {userStats.reviewedEssays}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      批改作文数
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} md={3} sx={{ p: 1 }}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
+                      {userStats.averageScore}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      平均分数
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6} md={3} sx={{ p: 1 }}>
+                  <Box sx={{ textAlign: 'center', p: 1, bgcolor: 'white', borderRadius: 1 }}>
+                    <Typography variant="h5" color="primary" sx={{ fontWeight: 'bold' }}>
+                      {userStats.improvementRate}%
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      进步率
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          </Paper>
+        )}
+        
+        {/* 主要功能卡片 */}
+        <Typography 
+          variant="h5" 
+          component="h2" 
+          gutterBottom 
+          sx={{ fontWeight: 'bold', mb: 2 }}
+        >
+          主要功能
+        </Typography>
+        
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card 
+              sx={{ 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column',
+                transition: 'transform 0.2s', 
+                '&:hover': { transform: 'translateY(-8px)' } 
+              }}
+            >
+              <CardActionArea 
+                sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+                onClick={() => router.push(isLoggedIn ? '/new-essay' : '/login')}
+              >
+                <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+                  <CreateIcon sx={{ fontSize: 60, color: 'primary.main' }} />
+                </Box>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography gutterBottom variant="h6" component="div" align="center">
+                    新建作文
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ 
-                    mt: 1, 
-                    textAlign: 'center',
-                    fontSize: { xs: '0.75rem', md: '0.875rem' }
-                  }}>
-                    {link.description}
+                  <Typography variant="body2" color="text.secondary" align="center">
+                    开始一篇新的作文，使用我们的写作辅助工具
                   </Typography>
-                </Paper>
-              </Link>
-            </Grid>
-          ))}
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={3}>
+            <Card 
+              sx={{ 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column',
+                transition: 'transform 0.2s', 
+                '&:hover': { transform: 'translateY(-8px)' } 
+              }}
+            >
+              <CardActionArea 
+                sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+                onClick={() => router.push(isLoggedIn ? '/review' : '/login')}
+              >
+                <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+                  <RateReviewIcon sx={{ fontSize: 60, color: 'primary.main' }} />
+                </Box>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography gutterBottom variant="h6" component="div" align="center">
+                    AI批改
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" align="center">
+                    使用AI智能批改功能，获取即时反馈和建议
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={3}>
+            <Card 
+              sx={{ 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column',
+                transition: 'transform 0.2s', 
+                '&:hover': { transform: 'translateY(-8px)' } 
+              }}
+            >
+              <CardActionArea 
+                sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+                onClick={() => router.push(isLoggedIn ? '/teacher-review' : '/login')}
+              >
+                <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+                  <SchoolIcon sx={{ fontSize: 60, color: 'primary.main' }} />
+                </Box>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography gutterBottom variant="h6" component="div" align="center">
+                    老师修改
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" align="center">
+                    获取老师的专业修改和指导，提高写作水平
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Grid>
+          
+          <Grid item xs={12} sm={6} md={3}>
+            <Card 
+              sx={{ 
+                height: '100%', 
+                display: 'flex', 
+                flexDirection: 'column',
+                transition: 'transform 0.2s', 
+                '&:hover': { transform: 'translateY(-8px)' } 
+              }}
+            >
+              <CardActionArea 
+                sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
+                onClick={() => router.push(isLoggedIn ? '/documents' : '/login')}
+              >
+                <Box sx={{ p: 2, display: 'flex', justifyContent: 'center' }}>
+                  <FolderIcon sx={{ fontSize: 60, color: 'primary.main' }} />
+                </Box>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography gutterBottom variant="h6" component="div" align="center">
+                    作文管理
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" align="center">
+                    查看和管理您的所有作文，跟踪写作进度
+                  </Typography>
+                </CardContent>
+              </CardActionArea>
+            </Card>
+          </Grid>
         </Grid>
       </Box>
     </Layout>

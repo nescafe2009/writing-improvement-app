@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cos, cosConfig, getPresignedUrl } from '@/config/cos';
+import { getCurrentUser } from '../../auth/middleware';
 
 // 文档类型映射
 interface DocumentTypeMap {
@@ -30,8 +31,16 @@ function extractTitle(filename: string): string {
 
 // 从路径中提取年级信息
 function extractGrade(key: string): string {
-  const match = key.match(/outlines\/([^\/]+)/);
+  // 新格式: outlines/username/年级/...
+  const match = key.match(/outlines\/[^\/]+\/([^\/]+)/);
   return match ? match[1] : '未知年级';
+}
+
+// 从路径中提取用户名
+function extractUsername(key: string): string {
+  // 新格式: outlines/username/年级/...
+  const match = key.match(/outlines\/([^\/]+)/);
+  return match ? match[1] : '未知用户';
 }
 
 // 从文件的LastModified属性格式化日期
@@ -41,6 +50,16 @@ function formatDate(lastModified: Date): string {
 
 export async function GET(request: Request) {
   try {
+    // 获取当前用户信息
+    const username = await getCurrentUser();
+    
+    if (!username) {
+      return NextResponse.json({
+        success: false,
+        error: '未登录，无法获取文档列表'
+      }, { status: 401 });
+    }
+    
     // 获取查询参数
     const url = new URL(request.url);
     const type = url.searchParams.get('type');
@@ -48,7 +67,7 @@ export async function GET(request: Request) {
     console.log('正在获取COS文档列表，配置信息:', {
       Bucket: cosConfig.Bucket,
       Region: cosConfig.Region,
-      Prefix: 'outlines/',
+      Prefix: `outlines/${username}/`,
       Type: type
     });
     
@@ -57,7 +76,7 @@ export async function GET(request: Request) {
       cos.getBucket({
         Bucket: cosConfig.Bucket,
         Region: cosConfig.Region,
-        Prefix: 'outlines/', // 只获取outlines目录下的文件
+        Prefix: `outlines/${username}/`, // 只获取当前用户的文件
         MaxKeys: 1000, // 最多返回1000个文件
       }, (err, data) => {
         if (err) {

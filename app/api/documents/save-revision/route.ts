@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cos, cosConfig, getPresignedUrl } from '@/config/cos';
+import { getCurrentUser } from '../../auth/middleware';
 import { 
   Document, Paragraph, TextRun, HeadingLevel, 
   AlignmentType, Packer, convertInchesToTwip,
@@ -39,9 +40,24 @@ function getGradeText(grade: string): string {
 
 export async function POST(request: Request) {
   try {
-    const { title, essay, feedback, grade } = await request.json();
+    // 获取当前用户信息
+    const username = await getCurrentUser();
+    
+    if (!username) {
+      return NextResponse.json({
+        success: false,
+        error: '未登录，无法保存修订'
+      }, { status: 401 });
+    }
 
-    if (!title || !essay || !feedback) {
+    // 解析请求数据
+    const { 
+      title, grade, content, originalDocId, 
+      revisionType = 'ai_improved', // 默认为AI修改
+      feedback
+    } = await request.json();
+
+    if (!title || !content || !grade) {
       return NextResponse.json(
         { error: '缺少必要参数' },
         { status: 400 }
@@ -112,7 +128,7 @@ export async function POST(request: Request) {
     
     // 添加作文内容 (小四号宋体)
     // 将作文按段落分割
-    const paragraphs = feedback.improvedEssay.split('\n').filter((p: string) => p.trim() !== '');
+    const paragraphs = content.split('\n').filter((p: string) => p.trim() !== '');
     
     paragraphs.forEach((paraText: string) => {
       docChildren.push(
@@ -288,7 +304,7 @@ export async function POST(request: Request) {
     );
     
     // 将原始作文按段落分割
-    const originalParagraphs = essay.split('\n').filter((p: string) => p.trim() !== '');
+    const originalParagraphs = originalDocId.split('\n').filter((p: string) => p.trim() !== '');
     
     originalParagraphs.forEach((paraText: string) => {
       docChildren.push(
@@ -332,8 +348,15 @@ export async function POST(request: Request) {
     // 生成文件名
     const fileName = generateUniqueFileName(title, gradeToUse);
     
-    // 在腾讯云COS中创建文件路径 - 保存到"作文初稿"子目录
-    const filePath = `outlines/${gradeText}/作文初稿/${fileName}`;
+    // 在腾讯云COS中创建文件路径
+    // 从feedback类型确定保存到哪个子目录
+    let typeFolder = '老师批改'; // 默认为老师批改
+    if (feedback && feedback.type === 'ai_improved') {
+      typeFolder = 'AI修改';
+    } else if (feedback && feedback.type === 'ai_review') {
+      typeFolder = 'AI评价';
+    }
+    const filePath = `outlines/${username}/${gradeText}/${typeFolder}/${fileName}`;
     
     console.log('COS配置:', {
       Bucket: cosConfig.Bucket,

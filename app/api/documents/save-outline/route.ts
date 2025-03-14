@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { cos, cosConfig, getPresignedUrl } from '@/config/cos';
 import { 
-  Document, Paragraph, TextRun, HeadingLevel, 
-  AlignmentType, Packer, convertInchesToTwip,
-  BorderStyle, SectionType
+  Document, Paragraph, TextRun, HeadingLevel, Packer, AlignmentType, 
+  BorderStyle, SectionType, convertInchesToTwip
 } from 'docx';
+import { getCurrentUser } from '../../auth/middleware';
 
 // 用于生成文件名的辅助函数
 function generateUniqueFileName(title: string): string {
@@ -16,6 +16,16 @@ function generateUniqueFileName(title: string): string {
 
 export async function POST(request: Request) {
   try {
+    // 获取当前用户信息
+    const username = await getCurrentUser();
+    
+    if (!username) {
+      return NextResponse.json({
+        success: false,
+        error: '未登录，无法保存提纲'
+      }, { status: 401 });
+    }
+
     const { title, grade, writingGuide } = await request.json();
 
     if (!title || !writingGuide) {
@@ -250,7 +260,7 @@ export async function POST(request: Request) {
     const fileName = generateUniqueFileName(title);
     
     // 在腾讯云COS中创建文件路径 - 年级后添加"作文提纲"子目录
-    const filePath = `outlines/${grade}/作文提纲/${fileName}`;
+    const filePath = `outlines/${username}/${grade}/作文提纲/${fileName}`;
     
     console.log('COS配置:', {
       Bucket: cosConfig.Bucket,

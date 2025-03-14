@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cos, cosConfig, getPresignedUrl } from '@/config/cos';
+import { getCurrentUser } from '../../auth/middleware';
 import { 
   Document, Paragraph, TextRun, HeadingLevel, 
   AlignmentType, Packer, SectionType
@@ -240,6 +241,16 @@ function extractTitleFromText(text: string): string {
 
 export async function POST(request: Request) {
   try {
+    // 获取当前用户信息
+    const username = await getCurrentUser();
+    
+    if (!username) {
+      return NextResponse.json({
+        success: false,
+        error: '未登录，无法创建文档'
+      }, { status: 401 });
+    }
+    
     const { text, title, type } = await request.json();
 
     if (!text || !title) {
@@ -262,11 +273,11 @@ export async function POST(request: Request) {
     // 为不同类型文档生成不同的保存路径
     let filePath;
     if (type === 'draft') {
-      filePath = `outlines/${gradeText}/作文初稿/${fileName}`;
+      filePath = `outlines/${username}/${gradeText}/作文初稿/${fileName}`;
     } else if (type === 'teacher_final') {
-      filePath = `outlines/${gradeText}/老师批改/${fileName}`;
+      filePath = `outlines/${username}/${gradeText}/老师批改/${fileName}`;
     } else {
-      filePath = `outlines/${gradeText}/文档/${fileName}`;
+      filePath = `outlines/${username}/${gradeText}/文档/${fileName}`;
     }
     
     // 创建Word文档，使用提取的标题

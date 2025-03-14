@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cos, cosConfig, getPresignedUrl } from '@/config/cos';
 import { Readable } from 'stream';
+import { nanoid } from 'nanoid';
+import { getCurrentUser } from '../../auth/middleware';
 
 // 将年级数字转换为文本
 function getGradeText(grade: string): string {
@@ -110,6 +112,16 @@ function generateFileName(fileName: string, type: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // 获取当前用户信息
+    const username = await getCurrentUser();
+    
+    if (!username) {
+      return NextResponse.json({
+        success: false,
+        error: '未登录，无法上传文件'
+      }, { status: 401 });
+    }
+
     // 处理FormData
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -143,11 +155,11 @@ export async function POST(request: NextRequest) {
     // 为不同类型文档生成不同的保存路径
     let filePath;
     if (fileType === 'draft') {
-      filePath = `outlines/${gradeText}/作文初稿/${fileName}`;
+      filePath = `outlines/${username}/${gradeText}/作文初稿/${fileName}`;
     } else if (fileType === 'teacher_final') {
-      filePath = `outlines/${gradeText}/老师批改/${fileName}`;
+      filePath = `outlines/${username}/${gradeText}/老师批改/${fileName}`;
     } else {
-      filePath = `outlines/${gradeText}/文档/${fileName}`;
+      filePath = `outlines/${username}/${gradeText}/文档/${fileName}`;
     }
     
     // 获取文件的ArrayBuffer

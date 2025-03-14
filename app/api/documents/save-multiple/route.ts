@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cos, cosConfig, getPresignedUrl } from '@/config/cos';
+import { getCurrentUser } from '../../auth/middleware';
 import { 
   Document, Paragraph, TextRun, HeadingLevel, 
   AlignmentType, Packer, convertInchesToTwip,
@@ -470,6 +471,16 @@ async function uploadToCOS(buffer: Buffer, filePath: string): Promise<string> {
 
 export async function POST(request: Request) {
   try {
+    // 获取当前用户信息
+    const username = await getCurrentUser();
+    
+    if (!username) {
+      return NextResponse.json({
+        success: false,
+        error: '未登录，无法保存文档'
+      }, { status: 401 });
+    }
+    
     const { title, essay, feedback, grade } = await request.json();
 
     if (!title || !essay || !feedback) {
@@ -489,9 +500,9 @@ export async function POST(request: Request) {
     const improvedFileName = generateFileName(title, 'AI修改');
     
     // 生成文件路径
-    const draftFilePath = `outlines/${gradeText}/作文初稿/${draftFileName}`;
-    const reviewFilePath = `outlines/${gradeText}/AI评价/${reviewFileName}`;
-    const improvedFilePath = `outlines/${gradeText}/AI修改/${improvedFileName}`;
+    const draftFilePath = `outlines/${username}/${gradeText}/作文初稿/${draftFileName}`;
+    const reviewFilePath = `outlines/${username}/${gradeText}/AI评价/${reviewFileName}`;
+    const improvedFilePath = `outlines/${username}/${gradeText}/AI修改/${improvedFileName}`;
     
     // 创建三个文档
     const draftBuffer = await createDraftDocument(essay, title);

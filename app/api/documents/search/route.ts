@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cos, cosConfig, getPresignedUrl } from '@/config/cos';
+import { getCurrentUser } from '../../auth/middleware';
 
 // 从Key路径推断文档类型
 function inferDocumentType(key: string): string {
@@ -25,8 +26,16 @@ function extractTitle(filename: string): string {
 
 // 从路径中提取年级信息
 function extractGrade(key: string): string {
-  const match = key.match(/outlines\/([^\/]+)/);
+  // 新格式: outlines/username/年级/...
+  const match = key.match(/outlines\/[^\/]+\/([^\/]+)/);
   return match ? match[1] : '未知年级';
+}
+
+// 从路径中提取用户名
+function extractUsername(key: string): string {
+  // 新格式: outlines/username/年级/...
+  const match = key.match(/outlines\/([^\/]+)/);
+  return match ? match[1] : '未知用户';
 }
 
 // 计算字符串相似度（使用Levenshtein距离算法）
@@ -74,6 +83,16 @@ function formatDate(lastModified: Date): string {
 
 export async function GET(request: Request) {
   try {
+    // 获取当前用户信息
+    const username = await getCurrentUser();
+    
+    if (!username) {
+      return NextResponse.json({
+        success: false,
+        error: '未登录，无法搜索文档'
+      }, { status: 401 });
+    }
+    
     // 获取查询参数
     const url = new URL(request.url);
     const keyword = url.searchParams.get('keyword') || '';
@@ -91,7 +110,8 @@ export async function GET(request: Request) {
       Bucket: cosConfig.Bucket,
       Region: cosConfig.Region,
       Keyword: keyword,
-      Type: type
+      Type: type,
+      Prefix: `outlines/${username}/`
     });
     
     // 列出存储桶中的所有对象
@@ -99,7 +119,7 @@ export async function GET(request: Request) {
       cos.getBucket({
         Bucket: cosConfig.Bucket,
         Region: cosConfig.Region,
-        Prefix: 'outlines/', // 只获取outlines目录下的文件
+        Prefix: `outlines/${username}/`, // 只获取当前用户的文件
         MaxKeys: 1000, // 最多返回1000个文件
       }, (err, data) => {
         if (err) {

@@ -8,10 +8,10 @@ FROM base AS deps
 # 安装libc6-compat，这是一些Node包可能需要的
 RUN apk add --no-cache libc6-compat
 
-# 复制package.json和package-lock.json
-COPY package.json package-lock.json* ./
+# 复制package.json
+COPY package.json ./
 # 安装依赖（使用legacy-peer-deps解决依赖冲突）
-RUN npm ci --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
 # 构建阶段
 FROM base AS builder

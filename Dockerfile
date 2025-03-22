@@ -10,8 +10,9 @@ RUN apk add --no-cache libc6-compat
 
 # 复制package.json
 COPY package.json ./
-# 安装依赖（使用legacy-peer-deps解决依赖冲突）
-RUN npm install --legacy-peer-deps
+# 安装依赖 - 使用多步骤安装解决冲突
+RUN npm install --legacy-peer-deps --force && \
+    npm install @types/react@18.3.19 --save-dev --force
 
 # 构建阶段
 FROM base AS builder

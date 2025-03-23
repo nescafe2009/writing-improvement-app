@@ -14,6 +14,7 @@ export default function LoginDebugPage() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [cookieExists, setCookieExists] = useState<boolean>(false);
+  const [cookies, setCookies] = useState<string[]>([]);
   
   // 调试状态
   const [authStatus, setAuthStatus] = useState<any>(null);
@@ -23,43 +24,52 @@ export default function LoginDebugPage() {
   const [dependencyStatus, setDependencyStatus] = useState<any>(null);
 
   useEffect(() => {
-    // 检查认证状态
-    setLoggedIn(isLoggedIn());
-    
-    // 获取令牌
-    const token = getAuthToken();
-    setAuthToken(token);
-    
-    // 检查cookie中的令牌
-    setCookieToken(document.cookie.includes('auth_token') ? '存在' : '不存在');
-    setCookieExists(document.cookie.includes('auth_token'));
-    
-    // 检查localStorage中的令牌
-    setLocalStorageToken(localStorage.getItem('auth_token'));
-    
-    // 获取用户资料
-    setUserProfile(getUserProfile());
-    
-    // 运行认证状态诊断
-    const status = checkAuthStatus();
-    setAuthStatus(status);
-    
-    // 运行Cookie功能测试
-    const test = testCookieFunctionality();
-    setCookieTest(test);
-    
-    // 检查依赖状态
-    try {
-      const deps = checkAuthDependencies();
-      setDependencyStatus(deps);
-    } catch (error) {
-      console.error('检查依赖状态时出错:', error);
+    // 确保这段代码只在客户端执行
+    if (typeof window !== 'undefined') {
+      // 检查认证状态
+      setLoggedIn(isLoggedIn());
+      
+      // 获取令牌
+      const token = getAuthToken();
+      setAuthToken(token);
+      
+      // 检查cookie中的令牌
+      const hasCookie = document.cookie.includes('auth_token');
+      setCookieToken(hasCookie ? '存在' : '不存在');
+      setCookieExists(hasCookie);
+      
+      // 保存cookies列表供显示
+      setCookies(document.cookie.split(';'));
+      
+      // 检查localStorage中的令牌
+      setLocalStorageToken(localStorage.getItem('auth_token'));
+      
+      // 获取用户资料
+      setUserProfile(getUserProfile());
+      
+      // 运行认证状态诊断
+      const status = checkAuthStatus();
+      setAuthStatus(status);
+      
+      // 运行Cookie功能测试
+      const test = testCookieFunctionality();
+      setCookieTest(test);
+      
+      // 检查依赖状态
+      try {
+        const deps = checkAuthDependencies();
+        setDependencyStatus(deps);
+      } catch (error) {
+        console.error('检查依赖状态时出错:', error);
+      }
     }
   }, []);
 
   // 显示Cookie详情
   const displayCookies = () => {
-    return document.cookie.split(';').map((cookie, index) => (
+    if (typeof window === 'undefined') return null;
+    
+    return cookies.map((cookie, index) => (
       <div key={index} className="bg-gray-100 p-2 rounded mb-1">
         {cookie.trim()}
       </div>
@@ -68,6 +78,8 @@ export default function LoginDebugPage() {
   
   // 尝试修复认证
   const handleRepair = async () => {
+    if (typeof window === 'undefined') return;
+    
     setLoading(true);
     try {
       const result = attemptAuthRepair();
@@ -80,8 +92,12 @@ export default function LoginDebugPage() {
         setAuthToken(token);
         
         // 检查cookie中的令牌
-        setCookieToken(document.cookie.includes('auth_token') ? '存在' : '不存在');
-        setCookieExists(document.cookie.includes('auth_token'));
+        const hasCookie = document.cookie.includes('auth_token');
+        setCookieToken(hasCookie ? '存在' : '不存在');
+        setCookieExists(hasCookie);
+        
+        // 更新cookies列表
+        setCookies(document.cookie.split(';'));
         
         // 检查localStorage中的令牌
         setLocalStorageToken(localStorage.getItem('auth_token'));
@@ -277,7 +293,7 @@ export default function LoginDebugPage() {
       <div className="bg-white shadow-md rounded p-4 mt-6">
         <h2 className="text-xl font-semibold mb-2">所有Cookie</h2>
         <div>
-          {document.cookie ? displayCookies() : <p className="text-red-600">未找到Cookie</p>}
+          {cookies.length > 0 ? displayCookies() : <p className="text-red-600">未找到Cookie</p>}
         </div>
       </div>
       

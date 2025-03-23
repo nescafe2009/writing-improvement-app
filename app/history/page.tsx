@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Timeline, TimelineItem, TimelineSeparator, 
-         TimelineConnector, TimelineContent, TimelineDot, TimelineOppositeContent } from '@mui/material';
+import { Box, Typography, Paper } from '@mui/material';
+import { Timeline, TimelineItem, TimelineSeparator, 
+         TimelineConnector, TimelineContent, TimelineDot, TimelineOppositeContent } from '@mui/lab';
 import { Edit as EditIcon, RateReview as RateReviewIcon, 
          Save as SaveIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 import Layout from '../components/layout/Layout';

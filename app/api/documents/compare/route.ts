@@ -376,7 +376,7 @@ async function getDocumentContent(url: string, fileDescription: string = "文档
 
 // 添加模拟对比结果函数
 function getMockComparisonResult() {
-  return {
+  const result = {
       summary: {
       totalChanges: 28,
       majorChanges: 7,
@@ -421,6 +421,8 @@ function getMockComparisonResult() {
         '加强段落之间的逻辑连贯性，使文章结构更加紧密'
       ]
   };
+  
+  return result;
 }
 
 // 修正老师文档ID格式的函数
@@ -512,7 +514,7 @@ export async function POST(req: Request) {
     // 使用模拟数据（如果指定）
     if (requestData.useSimulatedData) {
       console.log('使用模拟数据进行对比分析');
-      return Response.json({ 
+      return NextResponse.json({ 
         success: true, 
         result: getMockComparisonResult() 
       });
@@ -582,12 +584,12 @@ export async function POST(req: Request) {
           // 如果是404错误，使用模拟数据
           if (backupError.message.includes('404') || backupError.message.includes('未找到')) {
             console.log('文件未找到，使用模拟数据');
-            return Response.json({ 
+            return NextResponse.json({ 
               success: true, 
               result: getMockComparisonResult() 
             });
           }
-          return Response.json({ success: false, error: `获取原始文档内容失败: ${error.message}` }, { status: 404 });
+          return NextResponse.json({ success: false, error: `获取原始文档内容失败: ${error.message}` }, { status: 404 });
         }
       }
     }
@@ -678,7 +680,7 @@ export async function POST(req: Request) {
     // 如果我们尝试了所有方法但仍然没有获取到文件内容，使用模拟数据
     if (!teacherContent || !originalContent) {
       console.log(`经过多次尝试后，${!originalContent ? '原始文档' : ''}${!originalContent && !teacherContent ? '和' : ''}${!teacherContent ? '老师修改稿' : ''} 获取失败，使用模拟数据`);
-      return Response.json({
+      return NextResponse.json({
         success: true,
         result: getMockComparisonResult(),
         source: 'mock',
@@ -941,7 +943,10 @@ ${teacherText}
         console.error('处理API响应失败:', error);
         // 如果处理失败，返回模拟数据
         console.warn('由于处理API响应失败，将返回模拟数据');
-        return getMockComparisonResult();
+        return NextResponse.json({
+          success: true,
+          result: getMockComparisonResult()
+        });
       }
     } catch (error: any) {
       console.error('调用DeepSeek API失败:', error.message);
@@ -954,7 +959,10 @@ ${teacherText}
       }
       
       console.warn('由于调用DeepSeek API失败，将返回模拟数据');
-      return getMockComparisonResult();
+      return NextResponse.json({
+        success: true,
+        result: getMockComparisonResult()
+      });
     }
   } catch (error: any) {
     console.error('文档对比分析错误:', error);

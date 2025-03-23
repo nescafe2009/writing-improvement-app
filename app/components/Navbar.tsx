@@ -33,7 +33,7 @@ import {
   Edit as EditIcon,
   Home as HomeIcon
 } from '@mui/icons-material';
-import { isLoggedIn, getUserProfile, logoutUser } from '../../lib/client-auth';
+import { isLoggedIn, getUserProfile, logout } from '../../lib/client-auth';
 import { useRouter } from 'next/navigation';
 
 const Navbar = () => {
@@ -68,7 +68,7 @@ const Navbar = () => {
   
   const handleLogout = async () => {
     try {
-      await logoutUser();
+      await logout();
       router.push('/login');
     } catch (error) {
       console.error('登出失败:', error);

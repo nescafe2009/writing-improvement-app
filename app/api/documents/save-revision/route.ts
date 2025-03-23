@@ -365,7 +365,7 @@ export async function POST(request: Request) {
     });
     
     // 上传文档内容到腾讯云COS
-    return new Promise(async (resolve, reject) => {
+    return new Promise<Response>(async (resolve, reject) => {
       cos.putObject({
         Bucket: cosConfig.Bucket,
         Region: cosConfig.Region,
